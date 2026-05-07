@@ -262,10 +262,15 @@ git push origin N23DVCN025
 # 🧠 Best Practices
 
 > ✔️ Tách riêng Controllers và Routes
+> 
 > ✔️ Không viết business logic trực tiếp trong `app.js`
+> 
 > ✔️ Commit nhỏ và rõ ràng
+> 
 > ✔️ Review code bằng Pull Request
+> 
 > ✔️ Giữ cấu trúc project clean và scalable
+> 
 
 ---
 
