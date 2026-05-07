@@ -1,0 +1,9 @@
+# Chặn node_modules ở mọi nơi
+node_modules/
+
+# Chặn file môi trường
+.env
+
+# Chặn các file build
+dist/
+build/
