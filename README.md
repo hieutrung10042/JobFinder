@@ -71,23 +71,30 @@ Mục tiêu của dự án là mô phỏng quy trình tuyển dụng thực tế
 # 🧱 Kiến trúc hệ thống
 
 ```bash
-project-root/
+/recruitment-portal
 │
-├── backend/
-│   ├── controllers/
-│   ├── routes/
-│   ├── middleware/
-│   ├── models/
-│   └── app.js
+├── /backend                 # Source code NodeJS/Express 
+│   ├── /config              # Cấu hình DB, Biến môi trường
+│   ├── /controllers         # Logic xử lý 
+│   ├── /middlewares         # Kiểm tra JWT, Phân quyền 
+│   ├── /models              # Định nghĩa Schema CSDL 
+│   ├── /routes              # Định tuyến API 
+│   ├── /utils               # Helper 
+│   ├── app.js               # File trung chuyển duy nhất 
+│   └── package.json
 │
-├── frontend/
-│   ├── components/
-│   ├── pages/
-│   ├── context/
-│   ├── services/
-│   └── App.jsx
-│
-└── README.md
+├── /frontend                # Source code ReactJS 
+│   ├── /public
+│   ├── /src
+│   │   ├── /api             # Cấu hình Axios 
+│   │   ├── /components      # Header, Footer, UI chung 
+│   │   ├── /context         # Quản lý State 
+│   │   ├── /pages           # Các trang giao diện chính
+│   │   ├── /routes          # Thiết lập React Router 
+│   │   ├── /styles          # CSS, Dark Mode 
+│   │   └── App.js
+│   └── package.json
+└── README.md  
 ```
 
 ---
