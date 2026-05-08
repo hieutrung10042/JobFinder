@@ -56,18 +56,27 @@ const ACTIVE_JOBS = [
   },
 ];
 
+import { Link } from 'react-router';
+
 export default function EmployerDashboard() {
   return (
     <div className="min-h-screen bg-gray-50/50 py-8 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}
-        <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Employer Dashboard</h1>
-            <p className="text-gray-500 mt-1">Manage your job postings and applications.</p>
+            <div className="flex space-x-8 border-b border-gray-200 mt-6">
+              <Link to="/employer/dashboard" className="border-b-2 border-blue-600 pb-4 text-blue-600 font-medium text-sm transition-colors">
+                Overview & Jobs
+              </Link>
+              <Link to="/employer/candidates" className="border-b-2 border-transparent pb-4 text-gray-500 hover:text-gray-700 font-medium text-sm transition-colors">
+                Candidates
+              </Link>
+            </div>
           </div>
-          <button className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-sm">
+          <button className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-sm self-start mt-2">
             <Plus className="w-5 h-5" />
             Post a New Job
           </button>
