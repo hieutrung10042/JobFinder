@@ -5,10 +5,11 @@ import JobDetail from "./pages/public/JobDetail";
 import ProfileDashboard from "./pages/candidate/ProfileDashboard";
 import EmployerDashboard from "./pages/employer/EmployerDashboard";
 import CandidateManagement from "./pages/employer/CandidateManagement";
+import CandidateDetail from "./pages/employer/CandidateDetail";
 import AdminPanel from "./pages/admin/AdminPanel";
 import Settings from "./pages/shared/Settings";
 import Auth from "./pages/auth/Auth";
-
+import MyApplications from "./pages/public/MyApplications";
 export const router = createBrowserRouter([
   {
     path: "/",
@@ -19,8 +20,10 @@ export const router = createBrowserRouter([
       { path: "profile", Component: ProfileDashboard },
       { path: "employer/dashboard", Component: EmployerDashboard },
       { path: "employer/candidates", Component: CandidateManagement },
+      { path: "employer/candidates/:id", Component: CandidateDetail },
       { path: "settings", Component: Settings },
-      { path: "auth", Component: Auth }
+      { path: "auth", Component: Auth },
+      { path: "applications", Component: MyApplications },
     ],
   },
   {
