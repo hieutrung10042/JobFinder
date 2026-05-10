@@ -302,3 +302,111 @@ const apiLimiter = rateLimit({
     // THÊM DÒNG NÀY ĐỂ FIX LỖI:
     validate: { xForwardedForHeader: false }, 
 });
+// =========================================================================
+// CÁC CHỨC NĂNG MỚI THÊM: ĐĂNG NHẬP 2 LỚP (2FA) DÀNH RIÊNG CHO ADMIN
+// =========================================================================
+
+// --- BƯỚC 1: KIỂM TRA MẬT KHẨU VÀ GỬI OTP (Thay thế API Login cũ ở trang Admin) ---
+exports.adminLogin = async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ success: false, message: 'Vui lòng nhập đầy đủ email và mật khẩu!' });
+    }
+
+    try {
+        const [users] = await db.execute('SELECT * FROM Users WHERE email = ?', [email]);
+        if (users.length === 0) {
+            return res.status(404).json({ success: false, message: 'Người dùng không tồn tại!' });
+        }
+
+        const user = users[0];
+
+        // Chặn cứng: Chỉ cho phép tài khoản Admin
+        if (user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'Khu vực này chỉ dành cho Admin!' });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ success: false, message: 'Mật khẩu không chính xác!' });
+        }
+
+        // Tạo mã OTP 6 số và thời gian hết hạn (5 phút)
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expires = new Date(Date.now() + 5 * 60 * 1000); 
+
+        // Lưu OTP vào Database
+        await db.execute(
+            'UPDATE Users SET otp_code = ?, otp_expires = ? WHERE email = ?',
+            [otp, expires, email]
+        );
+
+        // Gửi OTP qua Email
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+        });
+
+        await transporter.sendMail({
+            from: `"JobFinder Admin" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: 'Mã OTP Đăng nhập Quản trị',
+            text: `Mã OTP xác thực đăng nhập Admin của bạn là: ${otp}. Mã này sẽ hết hạn sau 5 phút.`
+        });
+
+        // Trả về Frontend để nó chuyển sang màn hình nhập OTP
+        res.status(200).json({ 
+            success: true, 
+            message: "Mật khẩu hợp lệ. Vui lòng kiểm tra email để lấy mã OTP!",
+        });
+
+    } catch (error) {
+        console.error("Lỗi tại adminLogin:", error);
+        res.status(500).json({ success: false, message: "Lỗi máy chủ: " + error.message });
+    }
+};
+
+// --- BƯỚC 2: XÁC THỰC OTP VÀ CẤP TOKEN ---
+exports.verifyLoginOTP = async (req, res) => {
+    const { email, otp } = req.body;
+    
+    try {
+        const [users] = await db.execute(
+            'SELECT * FROM Users WHERE email = ? AND otp_code = ?', 
+            [email, otp]
+        );
+
+        if (users.length === 0) {
+            return res.status(400).json({ success: false, message: "Mã OTP không chính xác!" });
+        }
+
+        const user = users[0];
+
+        // Kiểm tra xem OTP đã hết hạn chưa
+        const now = new Date();
+        if (now > new Date(user.otp_expires)) {
+            return res.status(400).json({ success: false, message: "Mã OTP đã hết hạn!" });
+        }
+
+        // OTP đúng -> Xóa OTP khỏi Database để bảo mật
+        await db.execute('UPDATE Users SET otp_code = NULL, otp_expires = NULL WHERE email = ?', [email]);
+
+        // Tạo Token Đăng nhập
+        const token = jwt.sign(
+            { id: user.id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '1d' }
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Đăng nhập thành công!',
+            token,
+            user: { id: user.id, username: user.username, role: user.role }
+        });
+    } catch (error) {
+        console.error("Lỗi tại verifyLoginOTP:", error);
+        res.status(500).json({ success: false, message: 'Lỗi server khi xác thực OTP: ' + error.message });
+    }
+};
