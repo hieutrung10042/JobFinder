@@ -57,4 +57,7 @@ router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
 // Thêm route xác thực email
 router.post('/verify-email', authController.verifyEmail);
+//admin
+router.post('/admin-login', authController.adminLogin);
+router.post('/verify-login-otp', authController.verifyLoginOTP);
 module.exports = router;

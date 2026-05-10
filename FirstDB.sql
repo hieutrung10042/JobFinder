@@ -181,3 +181,13 @@ ALTER TABLE Users
     -- 3. Bảo mật bổ sung (Tùy chọn: dùng cho Reset Password qua Link nếu không dùng OTP)
     ADD COLUMN reset_password_token VARCHAR(255) NULL,
     ADD COLUMN reset_password_expires DATETIME NULL;
+
+INSERT INTO Users (username, email, password, role, is_active, is_verified) 
+VALUES (
+    'SuperAdmin', 
+    'admin@gmail.com', 
+    '$2b$10$wTxZ.39AoGjCQpG9csaWj.w220cy9fyKxrT.aRExBqsw31JWlC9d6', -- thay mã này bằng mã khi gõ node -e "console.log(require('bcryptjs').hashSync('123456', 10))" ở back end
+    'admin', 
+    1, 
+    1
+);
