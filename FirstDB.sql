@@ -168,3 +168,16 @@ CREATE TABLE Reports (
 CREATE INDEX idx_job_status ON Jobs(status);
 CREATE INDEX idx_job_type ON Jobs(job_type);
 CREATE INDEX idx_application_status ON Applications(status);
+
+ALTER TABLE Users
+    -- 1. Phục vụ tính năng Xác thực Email & Quên mật khẩu
+    ADD COLUMN is_verified BOOLEAN DEFAULT FALSE COMMENT 'Trạng thái xác thực email',
+    ADD COLUMN otp_code VARCHAR(6) NULL COMMENT 'Mã OTP 6 số (Xác thực/Quên MK)',
+    ADD COLUMN otp_expires DATETIME NULL COMMENT 'Thời gian hết hạn của mã OTP',
+    
+    -- 2. Thông tin hiển thị nhanh (Tránh phải JOIN với bảng Profiles khi không cần thiết)
+    ADD COLUMN display_name VARCHAR(100) NULL COMMENT 'Tên hiển thị thực tế của người dùng',
+    
+    -- 3. Bảo mật bổ sung (Tùy chọn: dùng cho Reset Password qua Link nếu không dùng OTP)
+    ADD COLUMN reset_password_token VARCHAR(255) NULL,
+    ADD COLUMN reset_password_expires DATETIME NULL;

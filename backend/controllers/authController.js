@@ -86,57 +86,84 @@ exports.register = async (req, res) => {
 
 // --- ĐĂNG NHẬP (LOGIN) ---
 exports.login = async (req, res) => {
-// 1. Nhận thêm biến 'role' từ giao diện React gửi lên (candidate hoặc employer)
-const { email, password, role } = req.body;
+    // 1. Nhận dữ liệu từ React gửi lên
+    const { email, password, role } = req.body;
 
-try {
-// 2. Tìm user theo email trong Database
-const [users] = await db.execute('SELECT * FROM Users WHERE email = ?', [email]);
-if (users.length === 0) {
-return res.status(404).json({ success: false, message: 'Người dùng không tồn tại!' });
-}
+    // Kiểm tra xem frontend có gửi đủ email và password không
+    if (!email || !password) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Vui lòng nhập đầy đủ email và mật khẩu!' 
+        });
+    }
 
-const user = users[0];
+    try {
+        // 2. Tìm user theo email trong Database
+        const [users] = await db.execute('SELECT * FROM Users WHERE email = ?', [email]);
+        if (users.length === 0) {
+            return res.status(404).json({ success: false, message: 'Người dùng không tồn tại!' });
+        }
 
-// 3. CHẶN ĐĂNG NHẬP SAI CỔNG (Kiểm tra Role)
-if (role && user.role !== role) {
-const roleName = user.role === 'employer' ? 'Nhà tuyển dụng (Employer)' : 'Ứng viên (Candidate)';
-return res.status(403).json({ 
-success: false, 
-message: `Sai cổng đăng nhập! Tài khoản này là của ${roleName}. Vui lòng chuyển tab.` 
-});
-}
+        const user = users[0];
 
-// 4. So sánh mật khẩu đã mã hóa
-const isMatch = await bcrypt.compare(password, user.password);
-if (!isMatch) {
-return res.status(400).json({ success: false, message: 'Mật khẩu không chính xác!' });
-}
+        // 3. CHẶN ĐĂNG NHẬP SAI CỔNG (Kiểm tra Role)
+        if (role && user.role !== role) {
+            const roleName = user.role === 'employer' ? 'Nhà tuyển dụng (Employer)' : 'Ứng viên (Candidate)';
+            return res.status(403).json({ 
+                success: false, 
+                message: `Sai cổng đăng nhập! Tài khoản này là của ${roleName}. Vui lòng chuyển tab.` 
+            });
+        }
 
-// 5. Tạo JWT Token
-const token = jwt.sign(
-{ id: user.id, role: user.role },
-process.env.JWT_SECRET,
-{ expiresIn: '1d' }
-);
+        // 4. So sánh mật khẩu đã mã hóa
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ success: false, message: 'Mật khẩu không chính xác!' });
+        }
 
-// Trong hàm login của bạn
-if (user.is_verified === 0) {
-    return res.status(401).json({ message: "Tài khoản của bạn chưa được xác thực email!" });
-}
+        // 5. Kiểm tra tài khoản đã xác thực email chưa
+        // MySQL lưu kiểu BOOLEAN dưới dạng TINYINT (0 là false, 1 là true)
+        if (user.is_verified === 0 || user.is_verified === false) {
+            return res.status(401).json({ 
+                success: false, 
+                message: "Tài khoản của bạn chưa được xác thực email! Vui lòng kiểm tra email để xác thực." 
+            });
+        }
 
-// 6. Trả về thông tin thành công cho React
-res.status(200).json({
-success: true,
-message: 'Đăng nhập thành công!',
-token,
-user: { id: user.id, username: user.username, role: user.role }
-});
-} catch (error) {
-res.status(500).json({ success: false, message: error.message });
-}
+        // 6. Kiểm tra cấu hình JWT (Nguyên nhân chính gây lỗi 500)
+        if (!process.env.JWT_SECRET) {
+            throw new Error("LỖI HỆ THỐNG: Thiếu biến JWT_SECRET trong file .env");
+        }
+
+        // 7. Tạo JWT Token
+        const token = jwt.sign(
+            { id: user.id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '1d' }
+        );
+
+        // 8. Trả về thông tin thành công cho React
+        res.status(200).json({
+            success: true,
+            message: 'Đăng nhập thành công!',
+            token,
+            user: { 
+                id: user.id, 
+                username: user.username, 
+                role: user.role 
+            }
+        });
+
+    } catch (error) {
+        // Log lỗi ra Terminal để bạn biết chính xác dòng nào gây lỗi
+        console.error("=== LỖI TẠI HÀM LOGIN ===", error);
+        
+        res.status(500).json({ 
+            success: false, 
+            message: "Lỗi máy chủ: " + error.message 
+        });
+    }
 };
-
 // --- Lấy thông tin cá nhân ---
 exports.getProfile = async (req, res) => {
 try {
