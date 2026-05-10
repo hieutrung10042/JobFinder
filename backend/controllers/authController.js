@@ -10,25 +10,25 @@ const rateLimit = require('express-rate-limit');
 exports.register = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ 
-            success: false, 
-            message: errors.array()[0].msg 
+        return res.status(400).json({
+            success: false,
+            message: errors.array()[0].msg
         });
     }
 
     // ĐÃ FIX LỖI Ở ĐÂY: Phải lấy cả 'name' ra từ req.body
     const { name, username, email, password, role } = req.body;
-    
+
     // Bây giờ máy tính đã biết 'name' là gì rồi, nó sẽ không báo lỗi nữa
-    const finalName = name || username; 
+    const finalName = name || username;
 
     if (!finalName) {
-        return res.status(400).json({ 
-            success: false, 
-            message: "Tên không được để trống!" 
+        return res.status(400).json({
+            success: false,
+            message: "Tên không được để trống!"
         });
     }
-    
+
     try {
         // 1. Kiểm tra Email tồn tại
         const [rows] = await db.execute('SELECT * FROM Users WHERE email = ?', [email]);
@@ -55,12 +55,12 @@ exports.register = async (req, res) => {
         }
 
         // 5. Gửi mail xác thực
-        const transporter = nodemailer.createTransport({ 
+        const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
-            } 
+            }
         });
 
         await transporter.sendMail({
@@ -73,9 +73,9 @@ exports.register = async (req, res) => {
         console.log("=== Đã gửi mail cho: ", email);
 
         // 6. Phản hồi duy nhất
-        return res.status(201).json({ 
-            success: true, 
-            message: "Đăng ký thành công! Vui lòng kiểm tra email để lấy mã xác thực." 
+        return res.status(201).json({
+            success: true,
+            message: "Đăng ký thành công! Vui lòng kiểm tra email để lấy mã xác thực."
         });
 
     } catch (error) {
@@ -91,9 +91,9 @@ exports.login = async (req, res) => {
 
     // Kiểm tra xem frontend có gửi đủ email và password không
     if (!email || !password) {
-        return res.status(400).json({ 
-            success: false, 
-            message: 'Vui lòng nhập đầy đủ email và mật khẩu!' 
+        return res.status(400).json({
+            success: false,
+            message: 'Vui lòng nhập đầy đủ email và mật khẩu!'
         });
     }
 
@@ -109,9 +109,9 @@ exports.login = async (req, res) => {
         // 3. CHẶN ĐĂNG NHẬP SAI CỔNG (Kiểm tra Role)
         if (role && user.role !== role) {
             const roleName = user.role === 'employer' ? 'Nhà tuyển dụng (Employer)' : 'Ứng viên (Candidate)';
-            return res.status(403).json({ 
-                success: false, 
-                message: `Sai cổng đăng nhập! Tài khoản này là của ${roleName}. Vui lòng chuyển tab.` 
+            return res.status(403).json({
+                success: false,
+                message: `Sai cổng đăng nhập! Tài khoản này là của ${roleName}. Vui lòng chuyển tab.`
             });
         }
 
@@ -124,9 +124,9 @@ exports.login = async (req, res) => {
         // 5. Kiểm tra tài khoản đã xác thực email chưa
         // MySQL lưu kiểu BOOLEAN dưới dạng TINYINT (0 là false, 1 là true)
         if (user.is_verified === 0 || user.is_verified === false) {
-            return res.status(401).json({ 
-                success: false, 
-                message: "Tài khoản của bạn chưa được xác thực email! Vui lòng kiểm tra email để xác thực." 
+            return res.status(401).json({
+                success: false,
+                message: "Tài khoản của bạn chưa được xác thực email! Vui lòng kiểm tra email để xác thực."
             });
         }
 
@@ -147,40 +147,40 @@ exports.login = async (req, res) => {
             success: true,
             message: 'Đăng nhập thành công!',
             token,
-            user: { 
-                id: user.id, 
-                username: user.username, 
-                role: user.role 
+            user: {
+                id: user.id,
+                username: user.username,
+                role: user.role
             }
         });
 
     } catch (error) {
         // Log lỗi ra Terminal để bạn biết chính xác dòng nào gây lỗi
         console.error("=== LỖI TẠI HÀM LOGIN ===", error);
-        
-        res.status(500).json({ 
-            success: false, 
-            message: "Lỗi máy chủ: " + error.message 
+
+        res.status(500).json({
+            success: false,
+            message: "Lỗi máy chủ: " + error.message
         });
     }
 };
 // --- Lấy thông tin cá nhân ---
 exports.getProfile = async (req, res) => {
-try {
-// req.user.id lấy từ Middleware verifyToken
-const [rows] = await db.execute(
-'SELECT id, username, email, role, created_at FROM Users WHERE id = ?',
-[req.user.id]
-);
+    try {
+        // req.user.id lấy từ Middleware verifyToken
+        const [rows] = await db.execute(
+            'SELECT id, username, email, role, created_at FROM Users WHERE id = ?',
+            [req.user.id]
+        );
 
-if (rows.length === 0) {
-return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
-}
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+        }
 
-res.status(200).json({ success: true, data: rows[0] });
-} catch (error) {
-res.status(500).json({ success: false, message: error.message });
-}
+        res.status(200).json({ success: true, data: rows[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
 };
 exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
@@ -195,7 +195,7 @@ exports.forgotPassword = async (req, res) => {
 
         // 2. Tạo mã OTP và thời gian hết hạn (10 phút)
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const expires = new Date(Date.now() + 10 * 60 * 1000); 
+        const expires = new Date(Date.now() + 10 * 60 * 1000);
 
         // 3. LƯU VÀO DATABASE (Đây là bước bạn đang thiếu)
         const [updateResult] = await db.execute(
@@ -223,9 +223,9 @@ exports.forgotPassword = async (req, res) => {
         });
 
         // 6. Phản hồi cho Client
-        res.status(200).json({ 
-            success: true, 
-            message: "Mã OTP đã được gửi về email của bạn!" 
+        res.status(200).json({
+            success: true,
+            message: "Mã OTP đã được gửi về email của bạn!"
         });
 
     } catch (error) {
@@ -239,7 +239,7 @@ exports.resetPassword = async (req, res) => {
     try {
         // 1. Tìm user theo email và mã OTP
         const [users] = await db.execute(
-            'SELECT * FROM Users WHERE email = ? AND otp_code = ?', 
+            'SELECT * FROM Users WHERE email = ? AND otp_code = ?',
             [email, otp]
         );
 
@@ -260,9 +260,9 @@ exports.resetPassword = async (req, res) => {
         // ---------------------------------------------------------
         const isSamePassword = await bcrypt.compare(newPassword, user.password);
         if (isSamePassword) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Mật khẩu mới không được trùng với mật khẩu hiện tại!" 
+            return res.status(400).json({
+                success: false,
+                message: "Mật khẩu mới không được trùng với mật khẩu hiện tại!"
             });
         }
 
@@ -286,7 +286,7 @@ exports.verifyEmail = async (req, res) => {
     const { email, otp } = req.body;
     try {
         const [users] = await db.execute(
-            'SELECT * FROM Users WHERE email = ? AND otp_code = ?', 
+            'SELECT * FROM Users WHERE email = ? AND otp_code = ?',
             [email, otp]
         );
 
@@ -311,7 +311,7 @@ const apiLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     // THÊM DÒNG NÀY ĐỂ FIX LỖI:
-    validate: { xForwardedForHeader: false }, 
+    validate: { xForwardedForHeader: false },
 });
 // =========================================================================
 // CÁC CHỨC NĂNG MỚI THÊM: ĐĂNG NHẬP 2 LỚP (2FA) DÀNH RIÊNG CHO ADMIN
@@ -345,7 +345,7 @@ exports.adminLogin = async (req, res) => {
 
         // Tạo mã OTP 6 số và thời gian hết hạn (5 phút)
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const expires = new Date(Date.now() + 5 * 60 * 1000); 
+        const expires = new Date(Date.now() + 5 * 60 * 1000);
 
         // Lưu OTP vào Database
         await db.execute(
@@ -367,8 +367,8 @@ exports.adminLogin = async (req, res) => {
         });
 
         // Trả về Frontend để nó chuyển sang màn hình nhập OTP
-        res.status(200).json({ 
-            success: true, 
+        res.status(200).json({
+            success: true,
             message: "Mật khẩu hợp lệ. Vui lòng kiểm tra email để lấy mã OTP!",
         });
 
@@ -381,10 +381,10 @@ exports.adminLogin = async (req, res) => {
 // --- BƯỚC 2: XÁC THỰC OTP VÀ CẤP TOKEN ---
 exports.verifyLoginOTP = async (req, res) => {
     const { email, otp } = req.body;
-    
+
     try {
         const [users] = await db.execute(
-            'SELECT * FROM Users WHERE email = ? AND otp_code = ?', 
+            'SELECT * FROM Users WHERE email = ? AND otp_code = ?',
             [email, otp]
         );
 

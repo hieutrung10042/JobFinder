@@ -11,9 +11,9 @@ const applicationRoutes = require('./routes/applicationRoutes');
 require('dotenv').config();
 // 1. Cấu hình Middlewares cơ bản
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
+    origin: ['http://localhost:5173', 'http://localhost:5174'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
 }));
 app.use(express.json()); // Đọc dữ liệu JSON từ req.body
 app.use(express.urlencoded({ extended: true }));
@@ -38,9 +38,9 @@ app.use((err, req, res, next) => {
 
 
 app.post('/api/jobs/create', verifyToken, authorizeRole(['employer']), (req, res) => {
-    res.json({ 
-        message: 'Đăng tin thành công!', 
-        user: req.user 
+    res.json({
+        message: 'Đăng tin thành công!',
+        user: req.user
     });
 });
 app.get('/', (req, res) => {
