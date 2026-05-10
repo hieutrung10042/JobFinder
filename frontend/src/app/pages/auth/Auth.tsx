@@ -71,9 +71,16 @@ export default function Auth() {
           password: formData.password,
           role: role
         });
+        
         if (response.data.token) {
           localStorage.setItem('token', response.data.token);
-          Swal.fire({ title: 'Thành công!', text: 'Chào mừng quay trở lại!', icon: 'success' });
+          
+          localStorage.setItem('user', JSON.stringify(response.data.user));
+          
+          Swal.fire({ title: 'Thành công!', text: 'Chào mừng quay trở lại!', icon: 'success' })
+            .then(() => {
+              window.location.href = "/"; 
+            });
         }
       } else {
         const response = await axios.post('http://localhost:5000/api/auth/register', {
@@ -164,7 +171,7 @@ export default function Auth() {
       setIsLoading(false);
     }
   };
-
+  
   return (
     <div className="min-h-[calc(100vh-80px)] bg-gray-50 dark:bg-slate-900 flex items-center justify-center p-4 transition-colors duration-200 font-sans py-12">
       <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700 p-8 transition-colors duration-200">
