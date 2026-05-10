@@ -228,7 +228,18 @@ exports.resetPassword = async (req, res) => {
             return res.status(400).json({ success: false, message: "Mã OTP đã hết hạn!" });
         }
 
-        // 3. Mã OTP đúng -> Băm mật khẩu mới
+        // ---------------------------------------------------------
+        // BƯỚC 2.5 THÊM MỚI: Kiểm tra trùng mật khẩu
+        // ---------------------------------------------------------
+        const isSamePassword = await bcrypt.compare(newPassword, user.password);
+        if (isSamePassword) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Mật khẩu mới không được trùng với mật khẩu hiện tại!" 
+            });
+        }
+
+        // 3. Mã OTP đúng và Mật khẩu không trùng -> Băm mật khẩu mới
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
