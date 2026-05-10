@@ -2,99 +2,276 @@ const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
-
+const { validationResult } = require('express-validator');
+const nodemailer = require('nodemailer');
+const rateLimit = require('express-rate-limit');
 // --- ĐĂNG KÝ (REGISTER) ---
-
+// --- ĐĂNG KÝ (REGISTER) ---
 exports.register = async (req, res) => {
-    const { username, email, password, role, full_name } = req.body;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ 
+            success: false, 
+            message: errors.array()[0].msg 
+        });
+    }
 
+    // ĐÃ FIX LỖI Ở ĐÂY: Phải lấy cả 'name' ra từ req.body
+    const { name, username, email, password, role } = req.body;
+    
+    // Bây giờ máy tính đã biết 'name' là gì rồi, nó sẽ không báo lỗi nữa
+    const finalName = name || username; 
+
+    if (!finalName) {
+        return res.status(400).json({ 
+            success: false, 
+            message: "Tên không được để trống!" 
+        });
+    }
+    
     try {
-        // 1. Kiểm tra User tồn tại
+        // 1. Kiểm tra Email tồn tại
         const [rows] = await db.execute('SELECT * FROM Users WHERE email = ?', [email]);
-        if (rows.length > 0) return res.status(400).json({ message: "Email đã tồn tại" });
+        if (rows.length > 0) return res.status(400).json({ success: false, message: "Email đã tồn tại" });
 
-        // 2. Hash mật khẩu
+        // 2. Hash mật khẩu và tạo OTP
         const hashedPassword = await bcrypt.hash(password, 10);
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
 
-        // 3. Chèn vào bảng Users
+        // 3. CHỈ DÙNG 1 LỆNH INSERT DUY NHẤT VÀO BẢNG USERS
         const [userResult] = await db.execute(
-            'INSERT INTO Users (username, email, password, role, is_active) VALUES (?, ?, ?, ?, 1)',
-            [username, email, hashedPassword, role || 'candidate']
+            'INSERT INTO Users (username, email, password, role, otp_code, otp_expires, is_verified) VALUES (?, ?, ?, ?, ?, ?, 0)',
+            [finalName, email, hashedPassword, role || 'candidate', otp, otpExpires]
         );
-        
+
         const userId = userResult.insertId;
 
-        // 4. Xử lý logic theo Role dựa trên DB mới
+        // 4. Xử lý Profile theo Role (Dùng finalName)
         if (role === 'employer') {
-            // Tạo một công ty mặc định cho Employer
-            await db.execute('INSERT INTO Companies (name) VALUES (?)', [`Công ty của ${username}`]);
+            await db.execute('INSERT INTO Companies (name) VALUES (?)', [`Công ty của ${finalName}`]);
         } else {
-            // Tạo Profile cho Candidate
-            await db.execute('INSERT INTO Profiles (user_id, full_name) VALUES (?, ?)', [userId, full_name]);
+            await db.execute('INSERT INTO Profiles (user_id, full_name) VALUES (?, ?)', [userId, finalName]);
         }
 
-       res.status(201).json({ 
-            success: true, 
-            message: "Đăng ký tài khoản thành công!" 
+        // 5. Gửi mail xác thực
+        const transporter = nodemailer.createTransport({ 
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            } 
         });
+
+        await transporter.sendMail({
+            from: `"JobSpot" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: 'Xác thực tài khoản mới',
+            text: `Chào ${finalName}, mã xác thực của bạn là: ${otp}`
+        });
+
+        console.log("=== Đã gửi mail cho: ", email);
+
+        // 6. Phản hồi duy nhất
+        return res.status(201).json({ 
+            success: true, 
+            message: "Đăng ký thành công! Vui lòng kiểm tra email để lấy mã xác thực." 
+        });
+
     } catch (error) {
-        // Nếu vẫn lỗi, nó sẽ hiển thị chi tiết tại đây
-        res.status(500).json({ error: error.message });
+        console.error("Lỗi Register:", error);
+        return res.status(500).json({ success: false, error: error.message });
     }
 };
 
 // --- ĐĂNG NHẬP (LOGIN) ---
 exports.login = async (req, res) => {
-    const { email, password } = req.body;
+// 1. Nhận thêm biến 'role' từ giao diện React gửi lên (candidate hoặc employer)
+const { email, password, role } = req.body;
+
+try {
+// 2. Tìm user theo email trong Database
+const [users] = await db.execute('SELECT * FROM Users WHERE email = ?', [email]);
+if (users.length === 0) {
+return res.status(404).json({ success: false, message: 'Người dùng không tồn tại!' });
+}
+
+const user = users[0];
+
+// 3. CHẶN ĐĂNG NHẬP SAI CỔNG (Kiểm tra Role)
+if (role && user.role !== role) {
+const roleName = user.role === 'employer' ? 'Nhà tuyển dụng (Employer)' : 'Ứng viên (Candidate)';
+return res.status(403).json({ 
+success: false, 
+message: `Sai cổng đăng nhập! Tài khoản này là của ${roleName}. Vui lòng chuyển tab.` 
+});
+}
+
+// 4. So sánh mật khẩu đã mã hóa
+const isMatch = await bcrypt.compare(password, user.password);
+if (!isMatch) {
+return res.status(400).json({ success: false, message: 'Mật khẩu không chính xác!' });
+}
+
+// 5. Tạo JWT Token
+const token = jwt.sign(
+{ id: user.id, role: user.role },
+process.env.JWT_SECRET,
+{ expiresIn: '1d' }
+);
+
+// Trong hàm login của bạn
+if (user.is_verified === 0) {
+    return res.status(401).json({ message: "Tài khoản của bạn chưa được xác thực email!" });
+}
+
+// 6. Trả về thông tin thành công cho React
+res.status(200).json({
+success: true,
+message: 'Đăng nhập thành công!',
+token,
+user: { id: user.id, username: user.username, role: user.role }
+});
+} catch (error) {
+res.status(500).json({ success: false, message: error.message });
+}
+};
+
+// --- Lấy thông tin cá nhân ---
+exports.getProfile = async (req, res) => {
+try {
+// req.user.id lấy từ Middleware verifyToken
+const [rows] = await db.execute(
+'SELECT id, username, email, role, created_at FROM Users WHERE id = ?',
+[req.user.id]
+);
+
+if (rows.length === 0) {
+return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+}
+
+res.status(200).json({ success: true, data: rows[0] });
+} catch (error) {
+res.status(500).json({ success: false, message: error.message });
+}
+};
+exports.forgotPassword = async (req, res) => {
+    const { email } = req.body;
+    console.log("Đang yêu cầu OTP cho email:", email);
 
     try {
-        // 1. Tìm user theo email
+        // 1. Kiểm tra xem User có tồn tại không
         const [users] = await db.execute('SELECT * FROM Users WHERE email = ?', [email]);
         if (users.length === 0) {
-            return res.status(404).json({ success: false, message: 'Người dùng không tồn tại!' });
+            return res.status(404).json({ success: false, message: "Email không tồn tại trong hệ thống!" });
+        }
+
+        // 2. Tạo mã OTP và thời gian hết hạn (10 phút)
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expires = new Date(Date.now() + 10 * 60 * 1000); 
+
+        // 3. LƯU VÀO DATABASE (Đây là bước bạn đang thiếu)
+        const [updateResult] = await db.execute(
+            'UPDATE Users SET otp_code = ?, otp_expires = ? WHERE email = ?',
+            [otp, expires, email]
+        );
+
+        console.log("Kết quả cập nhật DB:", updateResult);
+
+        // 4. Cấu hình gửi mail
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
+        });
+
+        // 5. Gửi mail
+        await transporter.sendMail({
+            from: `"JobFinder" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: 'Mã xác thực khôi phục mật khẩu',
+            text: `Mã OTP của bạn là: ${otp}. Mã này sẽ hết hạn sau 10 phút.`
+        });
+
+        // 6. Phản hồi cho Client
+        res.status(200).json({ 
+            success: true, 
+            message: "Mã OTP đã được gửi về email của bạn!" 
+        });
+
+    } catch (error) {
+        console.error("Lỗi tại forgotPassword:", error);
+        res.status(500).json({ success: false, message: "Có lỗi xảy ra, vui lòng thử lại sau!" });
+    }
+};
+exports.resetPassword = async (req, res) => {
+    const { email, otp, newPassword } = req.body;
+
+    try {
+        // 1. Tìm user theo email và mã OTP
+        const [users] = await db.execute(
+            'SELECT * FROM Users WHERE email = ? AND otp_code = ?', 
+            [email, otp]
+        );
+
+        if (users.length === 0) {
+            return res.status(400).json({ success: false, message: "Mã OTP không chính xác!" });
         }
 
         const user = users[0];
 
-        // 2. So sánh mật khẩu đã mã hóa
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ success: false, message: 'Mật khẩu không chính xác!' });
+        // 2. Kiểm tra mã OTP có hết hạn chưa
+        const now = new Date();
+        if (now > new Date(user.otp_expires)) {
+            return res.status(400).json({ success: false, message: "Mã OTP đã hết hạn!" });
         }
 
-        // 3. Tạo JWT Token
-        const token = jwt.sign(
-            { id: user.id, role: user.role },
-            process.env.JWT_SECRET,
-            { expiresIn: '1d' } // Token hết hạn sau 1 ngày
+        // 3. Mã OTP đúng -> Băm mật khẩu mới
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        // 4. Cập nhật mật khẩu mới và xóa mã OTP cũ trong DB (để không dùng lại được nữa)
+        await db.execute(
+            'UPDATE Users SET password = ?, otp_code = NULL, otp_expires = NULL WHERE email = ?',
+            [hashedPassword, email]
         );
 
-        // 4. Trả về thông tin (không trả password) và token
-        res.status(200).json({
-            success: true,
-            message: 'Đăng nhập thành công!',
-            token,
-            user: { id: user.id, username: user.username, role: user.role }
-        });
+        res.status(200).json({ success: true, message: "Đặt lại mật khẩu thành công! Hãy đăng nhập bằng mật khẩu mới." });
+
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
 };
-// Lấy thông tin cá nhân của người dùng hiện tại
-exports.getProfile = async (req, res) => {
+exports.verifyEmail = async (req, res) => {
+    const { email, otp } = req.body;
     try {
-        // req.user.id lấy từ Middleware verifyToken
-        const [rows] = await db.execute(
-            'SELECT id, username, email, role, created_at FROM Users WHERE id = ?',
-            [req.user.id]
+        const [users] = await db.execute(
+            'SELECT * FROM Users WHERE email = ? AND otp_code = ?', 
+            [email, otp]
         );
 
-        if (rows.length === 0) {
-            return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+        if (users.length === 0) {
+            return res.status(400).json({ message: "Mã xác thực không đúng!" });
         }
 
-        res.status(200).json({ success: true, data: rows[0] });
+        // Kích hoạt tài khoản và xóa mã OTP
+        await db.execute(
+            'UPDATE Users SET is_verified = 1, otp_code = NULL, otp_expires = NULL WHERE email = ?',
+            [email]
+        );
+
+        res.status(200).json({ success: true, message: "Xác thực tài khoản thành công! Giờ bạn có thể đăng nhập." });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({ message: error.message });
     }
 };
+const apiLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 15 phút
+    max: 100, // Giới hạn 100 request mỗi IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    // THÊM DÒNG NÀY ĐỂ FIX LỖI:
+    validate: { xForwardedForHeader: false }, 
+});
