@@ -127,15 +127,15 @@ export default function CandidateManagement() {
                   {filteredCandidates.filter(c => c.status === status).map(candidate => (
                     <div key={candidate.id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center gap-3">
+                        <Link to={`/employer/candidates/${candidate.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                           <div className="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-sm shrink-0">
                             {candidate.name.split(' ').map(n => n[0]).join('')}
                           </div>
                           <div>
-                            <h4 className="font-bold text-gray-900 text-sm leading-tight">{candidate.name}</h4>
+                            <h4 className="font-bold text-gray-900 text-sm leading-tight hover:text-blue-600 transition-colors">{candidate.name}</h4>
                             <p className="text-xs text-gray-500 mt-0.5">{candidate.exp}</p>
                           </div>
-                        </div>
+                        </Link>
                         
                         <div className="relative group">
                           <select 
@@ -196,15 +196,15 @@ export default function CandidateManagement() {
                   {filteredCandidates.map((candidate) => (
                     <tr key={candidate.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                        <Link to={`/employer/candidates/${candidate.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                           <div className="w-9 h-9 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-xs shrink-0">
                             {candidate.name.split(' ').map(n => n[0]).join('')}
                           </div>
                           <div>
-                            <div className="font-semibold text-gray-900">{candidate.name}</div>
+                            <div className="font-semibold text-gray-900 hover:text-blue-600 transition-colors">{candidate.name}</div>
                             <div className="text-xs text-gray-500">{candidate.exp}</div>
                           </div>
-                        </div>
+                        </Link>
                       </td>
                       <td className="px-6 py-4 text-gray-700 font-medium">
                         {candidate.job}

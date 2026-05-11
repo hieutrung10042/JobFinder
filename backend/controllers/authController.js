@@ -86,9 +86,19 @@ exports.register = async (req, res) => {
 
 // --- ĐĂNG NHẬP (LOGIN) ---
 exports.login = async (req, res) => {
+    // 1. Nhận dữ liệu từ React gửi lên
     const { email, password, role } = req.body;
 
+    // Kiểm tra xem frontend có gửi đủ email và password không
+    if (!email || !password) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Vui lòng nhập đầy đủ email và mật khẩu!' 
+        });
+    }
+
     try {
+        // 2. Tìm user theo email trong Database
         const [users] = await db.execute('SELECT * FROM Users WHERE email = ?', [email]);
         if (users.length === 0) {
             return res.status(404).json({ success: false, message: 'Người dùng không tồn tại!' });
@@ -96,6 +106,7 @@ exports.login = async (req, res) => {
 
         const user = users[0];
 
+        // 3. CHẶN ĐĂNG NHẬP SAI CỔNG (Kiểm tra Role)
         if (role && user.role !== role) {
             const roleName = user.role === 'employer' ? 'Nhà tuyển dụng (Employer)' : 'Ứng viên (Candidate)';
             return res.status(403).json({ 
@@ -104,29 +115,50 @@ exports.login = async (req, res) => {
             });
         }
 
+        // 4. So sánh mật khẩu đã mã hóa
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ success: false, message: 'Mật khẩu không chính xác!' });
         }
 
+        // 5. Kiểm tra tài khoản đã xác thực email chưa
+        if (user.is_verified === 0 || user.is_verified === false) {
+            return res.status(401).json({ 
+                success: false, 
+                message: "Tài khoản của bạn chưa được xác thực email! Vui lòng kiểm tra email để xác thực." 
+            });
+        }
+
+        // 6. Kiểm tra cấu hình JWT
+        if (!process.env.JWT_SECRET) {
+            throw new Error("LỖI HỆ THỐNG: Thiếu biến JWT_SECRET trong file .env");
+        }
+
+        // 7. Tạo JWT Token
         const token = jwt.sign(
             { id: user.id, role: user.role },
             process.env.JWT_SECRET,
             { expiresIn: '1d' }
         );
 
-        if (user.is_verified === 0) {
-            return res.status(401).json({ message: "Tài khoản của bạn chưa được xác thực email!" });
-        }
-
+        // 8. Trả về thông tin thành công cho React
         res.status(200).json({
             success: true,
             message: 'Đăng nhập thành công!',
             token,
-            user: { id: user.id, username: user.username, role: user.role }
+            user: { 
+                id: user.id, 
+                username: user.username, 
+                role: user.role 
+            }
         });
+
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        console.error("=== LỖI TẠI HÀM LOGIN ===", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Lỗi máy chủ: " + error.message 
+        });
     }
 };
 
@@ -270,7 +302,6 @@ exports.googleLogin = async (req, res) => {
         let user = users[0];
 
         if (!user) {
-            // FIX: Đổi 'users' thành 'Users' và bỏ qua trường name nếu bảng Users không có
             const [result] = await db.execute(
                 'INSERT INTO Users (username, email, password, role, is_verified) VALUES (?, ?, ?, ?, ?)',
                 [autoUsername, email, 'LOGIN_BY_GOOGLE_NO_PASSWORD', role || 'candidate', 1] 
@@ -278,7 +309,6 @@ exports.googleLogin = async (req, res) => {
             
             user = { id: result.insertId, email: email, role: role || 'candidate', username: autoUsername };
 
-            // Nếu muốn chèn vào Profiles/Companies, bạn có thể thêm logic tương tự phần Register
             if (role === 'employer') {
                 await db.execute('INSERT INTO Companies (name) VALUES (?)', [`Công ty của ${name}`]);
             } else {
@@ -297,5 +327,114 @@ exports.googleLogin = async (req, res) => {
     } catch (error) {
         console.error("Lỗi Google Login:", error);
         res.status(500).json({ success: false, message: "Lỗi kết nối Google: " + error.message });
+    }
+};
+
+// =========================================================================
+// CÁC CHỨC NĂNG MỚI THÊM: ĐĂNG NHẬP 2 LỚP (2FA) DÀNH RIÊNG CHO ADMIN
+// =========================================================================
+
+// --- BƯỚC 1: KIỂM TRA MẬT KHẨU VÀ GỬI OTP (Thay thế API Login cũ ở trang Admin) ---
+exports.adminLogin = async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ success: false, message: 'Vui lòng nhập đầy đủ email và mật khẩu!' });
+    }
+
+    try {
+        const [users] = await db.execute('SELECT * FROM Users WHERE email = ?', [email]);
+        if (users.length === 0) {
+            return res.status(404).json({ success: false, message: 'Người dùng không tồn tại!' });
+        }
+
+        const user = users[0];
+
+        // Chặn cứng: Chỉ cho phép tài khoản Admin
+        if (user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'Khu vực này chỉ dành cho Admin!' });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ success: false, message: 'Mật khẩu không chính xác!' });
+        }
+
+        // Tạo mã OTP 6 số và thời gian hết hạn (5 phút)
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expires = new Date(Date.now() + 5 * 60 * 1000); 
+
+        // Lưu OTP vào Database
+        await db.execute(
+            'UPDATE Users SET otp_code = ?, otp_expires = ? WHERE email = ?',
+            [otp, expires, email]
+        );
+
+        // Gửi OTP qua Email
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+        });
+
+        await transporter.sendMail({
+            from: `"JobFinder Admin" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: 'Mã OTP Đăng nhập Quản trị',
+            text: `Mã OTP xác thực đăng nhập Admin của bạn là: ${otp}. Mã này sẽ hết hạn sau 5 phút.`
+        });
+
+        // Trả về Frontend để nó chuyển sang màn hình nhập OTP
+        res.status(200).json({ 
+            success: true, 
+            message: "Mật khẩu hợp lệ. Vui lòng kiểm tra email để lấy mã OTP!",
+        });
+
+    } catch (error) {
+        console.error("Lỗi tại adminLogin:", error);
+        res.status(500).json({ success: false, message: "Lỗi máy chủ: " + error.message });
+    }
+};
+
+// --- BƯỚC 2: XÁC THỰC OTP VÀ CẤP TOKEN ---
+exports.verifyLoginOTP = async (req, res) => {
+    const { email, otp } = req.body;
+    
+    try {
+        const [users] = await db.execute(
+            'SELECT * FROM Users WHERE email = ? AND otp_code = ?', 
+            [email, otp]
+        );
+
+        if (users.length === 0) {
+            return res.status(400).json({ success: false, message: "Mã OTP không chính xác!" });
+        }
+
+        const user = users[0];
+
+        // Kiểm tra xem OTP đã hết hạn chưa
+        const now = new Date();
+        if (now > new Date(user.otp_expires)) {
+            return res.status(400).json({ success: false, message: "Mã OTP đã hết hạn!" });
+        }
+
+        // OTP đúng -> Xóa OTP khỏi Database để bảo mật
+        await db.execute('UPDATE Users SET otp_code = NULL, otp_expires = NULL WHERE email = ?', [email]);
+
+        // Tạo Token Đăng nhập
+        const token = jwt.sign(
+            { id: user.id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '1d' }
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Đăng nhập thành công!',
+            token,
+            user: { id: user.id, username: user.username, role: user.role }
+        });
+    } catch (error) {
+        console.error("Lỗi tại verifyLoginOTP:", error);
+        res.status(500).json({ success: false, message: 'Lỗi server khi xác thực OTP: ' + error.message });
     }
 };
