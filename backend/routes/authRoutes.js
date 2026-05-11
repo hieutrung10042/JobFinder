@@ -62,6 +62,7 @@ router.post('/reset-password', authController.resetPassword);
 router.post('/verify-email', authController.verifyEmail);
 
 
+
 router.get(
     '/profile',
     verifyToken,
@@ -74,5 +75,12 @@ router.put(
     upload.single('cv_file'),
     authController.updateProfile
 );
+
+
+//Rout đăng nhập bằng Google
+router.post('/google', authController.googleLogin);
+//admin
+router.post('/admin-login', authController.adminLogin);
+router.post('/verify-login-otp', authController.verifyLoginOTP);
 
 module.exports = router;
