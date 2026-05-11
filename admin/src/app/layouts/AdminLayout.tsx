@@ -1,4 +1,5 @@
-import { Link, Outlet, useLocation } from "react-router-dom"
+import { useState, useEffect } from "react"
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom"
 import { 
   LayoutDashboard, 
   Users, 
@@ -20,8 +21,73 @@ const navigation = [
   { name: "Resolution Center", href: "/reports", icon: AlertTriangle },
 ]
 
+// Khai báo kiểu dữ liệu cho User - Bổ sung thêm avatar_url
+interface UserProfile {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  avatar_url?: string | null; // Có thể null nếu user chưa có ảnh
+}
+
 export function AdminLayout() {
   const location = useLocation()
+  const navigate = useNavigate()
+  
+  // State lưu thông tin user
+  const [user, setUser] = useState<UserProfile | null>(null)
+
+  // Hàm tạo avatar chữ dự phòng
+  const getInitials = (name: string) => {
+    if (!name) return "AD";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  }
+
+  // Hook gọi API lấy thông tin Profile
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const token = localStorage.getItem("admin_token");
+      
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
+      try {
+        const response = await fetch("http://localhost:5000/api/auth/profile", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}` 
+          }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          setUser(data.data);
+        } else {
+          localStorage.removeItem("admin_token");
+          navigate("/login");
+        }
+      } catch (error) {
+        console.error("Lỗi khi tải thông tin admin:", error);
+      }
+    };
+
+    fetchProfile();
+  }, [navigate]);
+
+  // Hàm xử lý Đăng xuất
+  const handleLogout = (e: React.MouseEvent) => {
+    e.preventDefault(); 
+    localStorage.removeItem("admin_token");
+    navigate("/login");
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
@@ -54,13 +120,13 @@ export function AdminLayout() {
         </nav>
 
         <div className="p-4 bg-slate-950">
-          <Link
-            to="/login"
-            className="flex items-center px-3 py-2.5 rounded-md text-sm font-medium hover:bg-slate-800 hover:text-white transition-colors"
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center px-3 py-2.5 rounded-md text-sm font-medium hover:bg-slate-800 hover:text-white transition-colors"
           >
             <LogOut className="w-5 h-5 mr-3 text-slate-400" />
             Sign out
-          </Link>
+          </button>
         </div>
       </aside>
 
@@ -83,15 +149,33 @@ export function AdminLayout() {
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
             </button>
             <div className="h-8 w-px bg-slate-200 mx-2"></div>
+            
+            {/* User Info - Đã tích hợp avatar_url */}
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm">
-                SA
-              </div>
+              
+              {/* Logic render Avatar */}
+              {user?.avatar_url ? (
+                <img 
+                  src={user.avatar_url} 
+                  alt={user.username} 
+                  className="w-8 h-8 rounded-full object-cover border border-slate-200"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm">
+                  {user ? getInitials(user.username) : "..."}
+                </div>
+              )}
+
               <div className="text-sm">
-                <p className="font-medium text-slate-900 leading-none">Super Admin</p>
-                <p className="text-slate-500 text-xs mt-1">admin@jobfinder.com</p>
+                <p className="font-medium text-slate-900 leading-none">
+                  {user ? user.username : "Đang tải..."}
+                </p>
+                <p className="text-slate-500 text-xs mt-1">
+                  {user ? user.email : "..."}
+                </p>
               </div>
             </div>
+            
           </div>
         </header>
 
