@@ -313,3 +313,245 @@ const apiLimiter = rateLimit({
     // THÊM DÒNG NÀY ĐỂ FIX LỖI:
     validate: { xForwardedForHeader: false }, 
 });
+exports.getProfile = async (req, res) => {
+
+    try {
+
+        const userId = req.user.id;
+
+        // lấy profile
+        const [profiles] = await db.query(
+            'SELECT * FROM Profiles WHERE user_id = ?',
+            [userId]
+        );
+
+        if (profiles.length === 0) {
+
+            return res.json({
+                profile: null,
+                experience: [],
+                skills: []
+            });
+        }
+
+        const profile = profiles[0];
+
+        // experience
+        const [experience] = await db.query(
+            'SELECT * FROM Work_Experience WHERE profile_id = ?',
+            [profile.id]
+        );
+
+        // skills
+        const [skills] = await db.query(`
+            SELECT s.id, s.name
+            FROM User_Skills us
+            JOIN Skills s
+            ON us.skill_id = s.id
+            WHERE us.profile_id = ?
+        `, [profile.id]);
+
+        res.json({
+            profile,
+            experience,
+            skills
+        });
+
+    } catch (error) {
+
+        console.log(error);
+
+        res.status(500).json({
+            message: 'Server Error'
+        });
+    }
+};
+
+exports.updateProfile = async (req, res) => {
+
+    const connection = await db.getConnection();
+
+    try {
+
+        await connection.beginTransaction();
+
+        const userId = req.user.id;
+
+        const {
+            full_name,
+            title,
+            location,
+            experience,
+            skills
+        } = req.body;
+
+        let cv_url = null;
+
+        if (req.file) {
+
+            cv_url = `/uploads/cvs/${req.file.filename}`;
+        }
+
+        // ================= PROFILE =================
+
+        const [profiles] = await connection.query(
+            'SELECT * FROM Profiles WHERE user_id = ?',
+            [userId]
+        );
+
+        let profileId;
+
+        if (profiles.length === 0) {
+
+            const [result] = await connection.query(
+                `
+                INSERT INTO Profiles
+                (
+                    user_id,
+                    full_name,
+                    title,
+                    location,
+                    cv_url
+                )
+                VALUES (?, ?, ?, ?, ?)
+                `,
+                [
+                    userId,
+                    full_name,
+                    title,
+                    location,
+                    cv_url
+                ]
+            );
+
+            profileId = result.insertId;
+
+        } else {
+
+            profileId = profiles[0].id;
+
+            if (!cv_url) {
+
+                cv_url = profiles[0].cv_url;
+            }
+
+            await connection.query(
+                `
+                UPDATE Profiles
+                SET
+                    full_name = ?,
+                    title = ?,
+                    location = ?,
+                    cv_url = ?
+                WHERE id = ?
+                `,
+                [
+                    full_name,
+                    title,
+                    location,
+                    cv_url,
+                    profileId
+                ]
+            );
+        }
+
+        // ================= EXPERIENCE =================
+
+        await connection.query(
+            'DELETE FROM Work_Experience WHERE profile_id = ?',
+            [profileId]
+        );
+
+        if (experience) {
+
+            const expArray = JSON.parse(experience);
+
+            for (const exp of expArray) {
+
+                await connection.query(
+                    `
+                    INSERT INTO Work_Experience
+                    (
+                        profile_id,
+                        company_name,
+                        position,
+                        description
+                    )
+                    VALUES (?, ?, ?, ?)
+                    `,
+                    [
+                        profileId,
+                        exp.company,
+                        exp.role,
+                        exp.description
+                    ]
+                );
+            }
+        }
+
+        // ================= SKILLS =================
+
+        await connection.query(
+            'DELETE FROM User_Skills WHERE profile_id = ?',
+            [profileId]
+        );
+
+        if (skills) {
+
+            const skillsArray = JSON.parse(skills);
+
+            for (const skillName of skillsArray) {
+
+                let [skillRows] = await connection.query(
+                    'SELECT * FROM Skills WHERE name = ?',
+                    [skillName]
+                );
+
+                let skillId;
+
+                if (skillRows.length === 0) {
+
+                    const [newSkill] = await connection.query(
+                        'INSERT INTO Skills (name) VALUES (?)',
+                        [skillName]
+                    );
+
+                    skillId = newSkill.insertId;
+
+                } else {
+
+                    skillId = skillRows[0].id;
+                }
+
+                await connection.query(
+                    `
+                    INSERT INTO User_Skills
+                    (profile_id, skill_id)
+                    VALUES (?, ?)
+                    `,
+                    [profileId, skillId]
+                );
+            }
+        }
+
+        await connection.commit();
+
+        res.json({
+            message: 'Profile updated'
+        });
+
+    } catch (error) {
+
+        await connection.rollback();
+
+        console.log(error);
+
+        res.status(500).json({
+            message: 'Server Error'
+        });
+
+    } finally {
+
+        connection.release();
+    }
+};

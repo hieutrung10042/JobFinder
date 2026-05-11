@@ -10,6 +10,9 @@ import AdminPanel from "./pages/admin/AdminPanel";
 import Settings from "./pages/shared/Settings";
 import Auth from "./pages/auth/Auth";
 import MyApplications from "./pages/public/MyApplications";
+
+
+
 export const router = createBrowserRouter([
   {
     path: "/",

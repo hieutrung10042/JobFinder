@@ -181,3 +181,42 @@ ALTER TABLE Users
     -- 3. Bảo mật bổ sung (Tùy chọn: dùng cho Reset Password qua Link nếu không dùng OTP)
     ADD COLUMN reset_password_token VARCHAR(255) NULL,
     ADD COLUMN reset_password_expires DATETIME NULL;
+    
+ALTER TABLE profiles 
+ADD COLUMN title VARCHAR(255) AFTER full_name,
+ADD COLUMN avatar_url LONGTEXT AFTER cv_url,
+ADD COLUMN cover_url LONGTEXT AFTER avatar_url;
+
+
+ALTER TABLE Work_Experience 
+ADD COLUMN period_text VARCHAR(100) AFTER description;
+
+ALTER TABLE Education 
+ADD COLUMN period_text VARCHAR(100) AFTER description,
+ADD COLUMN gpa VARCHAR(10) AFTER major;
+
+
+CREATE TABLE Favorite_Jobs (
+    user_id INT NOT NULL,
+    job_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, job_id),
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (job_id) REFERENCES Jobs(id) ON DELETE CASCADE
+);
+
+CREATE TABLE Messages (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    sender_id INT NOT NULL,
+    receiver_id INT NOT NULL,
+    job_id INT NULL,
+    content TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_id) REFERENCES Users(id),
+    FOREIGN KEY (receiver_id) REFERENCES Users(id),
+    FOREIGN KEY (job_id) REFERENCES Jobs(id) ON DELETE SET NULL
+);
+
+ALTER TABLE Profiles 
+ADD COLUMN social_links JSON NULL COMMENT 'Lưu link mạng xã hội';

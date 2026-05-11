@@ -5,6 +5,9 @@ const { verifyToken } = require('../middlewares/authMiddleware');
 const rateLimit = require('express-rate-limit');
 const { body } = require('express-validator');
 
+const upload = require('../middlewares/uploadMiddleware');
+ 
+
 // --- 1. CẤU HÌNH KHIÊN ---
 
 // Giới hạn login
@@ -57,4 +60,19 @@ router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
 // Thêm route xác thực email
 router.post('/verify-email', authController.verifyEmail);
+
+
+router.get(
+    '/profile',
+    verifyToken,
+    authController.getProfile
+);
+
+router.put(
+    '/profile',
+    verifyToken,
+    upload.single('cv_file'),
+    authController.updateProfile
+);
+
 module.exports = router;
