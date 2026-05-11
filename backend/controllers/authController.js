@@ -461,11 +461,7 @@ exports.verifyLoginOTP = async (req, res) => {
                 id: user.id, 
                 username: user.username, 
                 role: user.role,
-<<<<<<< HEAD
                 avatar_url: user.avatar_url
-=======
-                avatar_url: user.avatar_url // <--- BẠN THÊM DÒNG NÀY VÀO ĐÂY
->>>>>>> main
             }
         });
     } catch (error) {
