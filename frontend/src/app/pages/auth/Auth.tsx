@@ -35,7 +35,7 @@ export default function Auth() {
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetStep, setResetStep] = useState(1); // 1: Nhập email, 2: Nhập OTP & Pass mới
   const [newPassword, setNewPassword] = useState("");
-  const [confirmNewPassword, setConfirmNewPassword] = useState(""); // THÊM MỚI
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
 
   // --- HANDLERS CHUNG ---
   const handleChange = (e) => {
@@ -57,8 +57,8 @@ export default function Auth() {
     setResetStep(1);
     setError("");
     setOtpCode("");
-    setNewPassword(""); // Clear pass cũ
-    setConfirmNewPassword(""); // Clear pass xác nhận
+    setNewPassword(""); 
+    setConfirmNewPassword(""); 
   };
 
   // --- 1. XỬ LÝ ĐĂNG NHẬP / ĐĂNG KÝ ---
@@ -80,20 +80,26 @@ export default function Auth() {
     setIsLoading(true);
     try {
       if (isLogin) {
-        const response = await axios.post(
-          "http://localhost:5000/api/auth/login",
-          {
-            email: formData.email,
-            password: formData.password,
-            role: role,
-          },
-        );
+        // ĐÃ GỘP LOGIC: Vừa lưu token, vừa lưu user, vừa redirect
+        const response = await axios.post('http://localhost:5000/api/auth/login', {
+          email: formData.email,
+          password: formData.password,
+          role: role
+        });
+        
         if (response.data.token) {
-          localStorage.setItem("token", response.data.token);
-          Swal.fire({
-            title: "Thành công!",
-            text: "Chào mừng quay trở lại!",
-            icon: "success",
+          localStorage.setItem('token', response.data.token);
+          
+          if (response.data.user) {
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+          }
+          
+          Swal.fire({ 
+            title: 'Thành công!', 
+            text: 'Chào mừng quay trở lại!', 
+            icon: 'success' 
+          }).then(() => {
+            window.location.href = "/"; 
           });
         }
       } else {
@@ -105,7 +111,7 @@ export default function Auth() {
             email: formData.email,
             password: formData.password,
             role: role,
-          },
+          }
         );
         if (response.data.success) {
           Swal.fire({
@@ -138,7 +144,7 @@ export default function Auth() {
         {
           email: formData.email,
           otp: otpCode,
-        },
+        }
       );
       if (response.data.success) {
         Swal.fire({
@@ -166,7 +172,7 @@ export default function Auth() {
     try {
       const response = await axios.post(
         "http://localhost:5000/api/auth/forgot-password",
-        { email: formData.email },
+        { email: formData.email }
       );
       if (response.data.success) {
         Swal.fire({
@@ -188,12 +194,10 @@ export default function Auth() {
     e.preventDefault();
     setError("");
 
-    // Kiểm tra rỗng
     if (!otpCode || !newPassword || !confirmNewPassword) {
       return setError("Vui lòng nhập đầy đủ mã OTP và mật khẩu mới!");
     }
 
-    // Kiểm tra khớp mật khẩu (THÊM MỚI)
     if (newPassword !== confirmNewPassword) {
       return setError("Mật khẩu xác nhận không khớp!");
     }
@@ -206,7 +210,7 @@ export default function Auth() {
           email: formData.email,
           otp: otpCode,
           newPassword: newPassword,
-        },
+        }
       );
       if (response.data.success) {
         Swal.fire({
@@ -223,32 +227,37 @@ export default function Auth() {
     }
   };
 
-  //Thêm hàm xử lý Google Login này vào dưới cụm HANDLERS
+  // --- 5. XỬ LÝ GOOGLE LOGIN ---
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setIsLoading(true);
       try {
-        // Gửi access_token của Google xuống Backend của bạn
         const response = await axios.post(
           "http://localhost:5000/api/auth/google",
           {
             accessToken: tokenResponse.access_token,
-            role: role, // Gửi kèm role user đang chọn (Candidate/Employer)
-          },
+            role: role, 
+          }
         );
 
         if (response.data.token) {
           localStorage.setItem("token", response.data.token);
+          
+          if (response.data.user) {
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+          }
+
           Swal.fire({
             title: "Thành công!",
             text: "Đăng nhập Google thành công!",
             icon: "success",
+          }).then(() => {
+             window.location.href = "/";
           });
-          // Chuyển hướng user vào trang chủ...
         }
       } catch (err) {
         setError(
-          err.response?.data?.message || "Lỗi khi đăng nhập bằng Google!",
+          err.response?.data?.message || "Lỗi khi đăng nhập bằng Google!"
         );
       } finally {
         setIsLoading(false);
@@ -256,6 +265,7 @@ export default function Auth() {
     },
     onError: () => setError("Đăng nhập Google thất bại!"),
   });
+
   return (
     <div className="min-h-[calc(100vh-80px)] bg-gray-50 dark:bg-slate-900 flex items-center justify-center p-4 transition-colors duration-200 font-sans py-12">
       <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700 p-8 transition-colors duration-200">
@@ -367,7 +377,6 @@ export default function Auth() {
                   />
                 </div>
 
-                {/* Ô XÁC NHẬN MẬT KHẨU MỚI (MỚI THÊM) */}
                 <div className="relative">
                   <ShieldCheck className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input

@@ -327,3 +327,22 @@ ALTER TABLE Users
     -- 3. Bảo mật bổ sung (Tùy chọn: dùng cho Reset Password qua Link nếu không dùng OTP)
     ADD COLUMN reset_password_token VARCHAR(255) NULL,
     ADD COLUMN reset_password_expires DATETIME NULL;
+
+-- 1. Thêm Avatar cho người dùng (Nên đưa vào bảng Users cùng với display_name để dễ gọi lên Header mà không cần JOIN)
+ALTER TABLE Users 
+    ADD COLUMN avatar_url VARCHAR(255) NULL COMMENT 'Ảnh đại diện của người dùng';
+
+-- Hoặc nếu bạn thích chuẩn hóa, có thể thêm vào bảng Profiles:
+-- ALTER TABLE Profiles ADD COLUMN avatar_url VARCHAR(255) NULL;
+
+-- 2. Thêm Ảnh bìa (Banner) cho trang chi tiết Công ty
+ALTER TABLE Companies 
+    ADD COLUMN banner_url VARCHAR(255) NULL COMMENT 'Ảnh bìa/cover của công ty';
+
+-- 3. Thêm Hình ảnh đại diện cho Khu vực (Dùng cho section Top Locations ở Trang chủ)
+ALTER TABLE Locations 
+    ADD COLUMN image_url VARCHAR(255) NULL COMMENT 'Ảnh đại diện cho thành phố/khu vực';
+
+-- 4. Thêm Ảnh đại diện (Thumbnail) cho Tin tuyển dụng (Tùy chọn - phục vụ SEO & Share MXH)
+ALTER TABLE Jobs 
+    ADD COLUMN thumbnail_url VARCHAR(255) NULL COMMENT 'Ảnh thumbnail của tin tuyển dụng';
