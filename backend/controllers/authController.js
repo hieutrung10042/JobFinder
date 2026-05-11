@@ -166,21 +166,22 @@ exports.login = async (req, res) => {
 };
 // --- Lấy thông tin cá nhân ---
 exports.getProfile = async (req, res) => {
-try {
-// req.user.id lấy từ Middleware verifyToken
-const [rows] = await db.execute(
-'SELECT id, username, email, role, created_at FROM Users WHERE id = ?',
-[req.user.id]
-);
+    try {
+        // req.user.id lấy từ Middleware verifyToken
+        const [rows] = await db.execute(
+            // ĐÃ BỔ SUNG THÊM avatar_url VÀO CÂU TRUY VẤN
+            'SELECT id, username, email, role, avatar_url, created_at FROM Users WHERE id = ?',
+            [req.user.id]
+        );
 
-if (rows.length === 0) {
-return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
-}
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+        }
 
-res.status(200).json({ success: true, data: rows[0] });
-} catch (error) {
-res.status(500).json({ success: false, message: error.message });
-}
+        res.status(200).json({ success: true, data: rows[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
 };
 exports.forgotPassword = async (req, res) => {
     const { email } = req.body;

@@ -31,7 +31,8 @@ app.use((err, req, res, next) => {
     });
 });
 
-
+// THÊM DÒNG NÀY CHO ADMIN:
+app.use('/api/admin', require('./routes/admin/adminRoutes'));
 // 2. Import Routes (Sau này bạn sẽ import authRoutes, jobRoutes vào đây)
 // const authRoutes = require('./routes/authRoutes');
 // app.use('/api/auth', authRoutes);
