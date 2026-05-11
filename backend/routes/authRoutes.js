@@ -57,4 +57,6 @@ router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
 // Thêm route xác thực email
 router.post('/verify-email', authController.verifyEmail);
+//Rout đăng nhập bằng Google
+router.post('/google', authController.googleLogin);
 module.exports = router;
