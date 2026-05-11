@@ -129,7 +129,7 @@ exports.login = async (req, res) => {
             });
         }
 
-        // 6. Kiểm tra cấu hình JWT
+        // 6. Kiểm tra cấu hình JWT 
         if (!process.env.JWT_SECRET) {
             throw new Error("LỖI HỆ THỐNG: Thiếu biến JWT_SECRET trong file .env");
         }
@@ -149,7 +149,8 @@ exports.login = async (req, res) => {
             user: { 
                 id: user.id, 
                 username: user.username, 
-                role: user.role 
+                role: user.role,
+                avatar_url: user.avatar_url 
             }
         });
 
@@ -165,9 +166,7 @@ exports.login = async (req, res) => {
 // --- Lấy thông tin cá nhân ---
 exports.getProfile = async (req, res) => {
     try {
-        // req.user.id lấy từ Middleware verifyToken
         const [rows] = await db.execute(
-            // ĐÃ BỔ SUNG THÊM avatar_url VÀO CÂU TRUY VẤN
             'SELECT id, username, email, role, avatar_url, created_at FROM Users WHERE id = ?',
             [req.user.id]
         );
@@ -297,25 +296,31 @@ exports.googleLogin = async (req, res) => {
             headers: { Authorization: `Bearer ${accessToken}` }
         });
         
-        const { email, name } = googleResponse.data;
+        // LẤY THÊM "picture" TỪ GOOGLE
+        const { email, name, picture } = googleResponse.data;
         const autoUsername = email.split('@')[0]; 
 
         const [users] = await db.execute('SELECT * FROM Users WHERE email = ?', [email]);
         let user = users[0];
 
         if (!user) {
+            // THÊM avatar_url VÀO LÚC TẠO TÀI KHOẢN MỚI
             const [result] = await db.execute(
-                'INSERT INTO Users (username, email, password, role, is_verified) VALUES (?, ?, ?, ?, ?)',
-                [autoUsername, email, 'LOGIN_BY_GOOGLE_NO_PASSWORD', role || 'candidate', 1] 
+                'INSERT INTO Users (username, email, password, role, is_verified, avatar_url) VALUES (?, ?, ?, ?, ?, ?)',
+                [autoUsername, email, 'LOGIN_BY_GOOGLE_NO_PASSWORD', role || 'candidate', 1, picture || null] 
             );
             
-            user = { id: result.insertId, email: email, role: role || 'candidate', username: autoUsername };
+            user = { id: result.insertId, email: email, role: role || 'candidate', username: autoUsername, avatar_url: picture };
 
             if (role === 'employer') {
                 await db.execute('INSERT INTO Companies (name) VALUES (?)', [`Công ty của ${name}`]);
             } else {
                 await db.execute('INSERT INTO Profiles (user_id, full_name) VALUES (?, ?)', [result.insertId, name]);
             }
+        } else if (!user.avatar_url && picture) {
+            // (Tuỳ chọn) Nếu user cũ chưa có avatar, cập nhật luôn cho họ
+            await db.execute('UPDATE Users SET avatar_url = ? WHERE email = ?', [picture, email]);
+            user.avatar_url = picture;
         }
 
         const token = jwt.sign(
@@ -324,7 +329,18 @@ exports.googleLogin = async (req, res) => {
             { expiresIn: '7d' }
         );
 
-        res.status(200).json({ success: true, token: token, user: { username: user.username, email: user.email } });
+        // TRẢ VỀ avatar_url CHO FRONTEND
+        res.status(200).json({ 
+            success: true, 
+            token: token, 
+            user: { 
+                id: user.id,
+                username: user.username, 
+                email: user.email,
+                role: user.role,
+                avatar_url: user.avatar_url 
+            } 
+        });
 
     } catch (error) {
         console.error("Lỗi Google Login:", error);
@@ -433,7 +449,12 @@ exports.verifyLoginOTP = async (req, res) => {
             success: true,
             message: 'Đăng nhập thành công!',
             token,
-            user: { id: user.id, username: user.username, role: user.role }
+            user: { 
+                id: user.id, 
+                username: user.username, 
+                role: user.role,
+                avatar_url: user.avatar_url // <--- BẠN THÊM DÒNG NÀY VÀO ĐÂY
+            }
         });
     } catch (error) {
         console.error("Lỗi tại verifyLoginOTP:", error);
