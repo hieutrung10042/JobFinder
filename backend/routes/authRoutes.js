@@ -7,8 +7,9 @@ const rateLimit = require('express-rate-limit');
 const { body } = require('express-validator');
 const upload = require('../middlewares/uploadMiddleware');
 
-// ─── RATE LIMITERS ────────────────────────────────────────────────────────────
+// ─── RATE LIMITERS ─────────────────────────────────────────────
 
+// Giới hạn login
 const loginLimiter = rateLimit({
     windowMs: 1 * 60 * 1000,
     max: 5,
@@ -22,6 +23,7 @@ const loginLimiter = rateLimit({
     }
 });
 
+// Giới hạn chung API
 const apiLimiter = rateLimit({
     windowMs: 1 * 60 * 1000,
     max: 100,
@@ -30,7 +32,7 @@ const apiLimiter = rateLimit({
     validate: { xForwardedForHeader: false, default: false },
 });
 
-// ─── VALIDATION ───────────────────────────────────────────────────────────────
+// ─── VALIDATION ────────────────────────────────────────────────
 
 const registerValidation = [
     body('email').isEmail().withMessage('Định dạng email không hợp lệ!'),
@@ -38,20 +40,25 @@ const registerValidation = [
     body('username').notEmpty().withMessage('Tên không được để trống!')
 ];
 
-// ─── AUTH ROUTES ──────────────────────────────────────────────────────────────
+// ─── AUTH ROUTES ───────────────────────────────────────────────
 
-router.post('/register',          registerValidation, authController.register);
-router.post('/login',             loginLimiter,       authController.login);
-router.post('/forgot-password',                       authController.forgotPassword);
-router.post('/reset-password',                        authController.resetPassword);
-router.post('/verify-email',                          authController.verifyEmail);
-router.post('/google',                                authController.googleLogin);
-router.post('/admin-login',                           authController.adminLogin);
-router.post('/verify-login-otp',                      authController.verifyLoginOTP);
+router.post('/register', registerValidation, authController.register);
+router.post('/login', loginLimiter, authController.login);
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
+router.post('/verify-email', authController.verifyEmail);
+router.post('/google', authController.googleLogin);
+router.post('/admin-login', authController.adminLogin);
+router.post('/verify-login-otp', authController.verifyLoginOTP);
 
-// ─── PROFILE ROUTES ───────────────────────────────────────────────────────────
+// ─── PROFILE ROUTES ────────────────────────────────────────────
 
-router.get('/profile',  verifyToken,                             profileController.getMyProfile);
-router.put('/profile',  verifyToken, upload.single('cv_file'),   profileController.updateMyProfile);
+router.get('/profile', verifyToken, profileController.getMyProfile);
+router.put(
+    '/profile',
+    verifyToken,
+    upload.single('cv_file'),
+    profileController.updateMyProfile
+);
 
 module.exports = router;
