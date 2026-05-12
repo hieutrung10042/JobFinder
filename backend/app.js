@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const path = require('path'); // ← thêm dòng này
 
 // Import Routes
 const authRoutes = require('./routes/authRoutes');
@@ -16,9 +17,9 @@ require('dotenv').config();
 
 // 1. Cấu hình Middlewares cơ bản
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
+    origin: ['http://localhost:5173', 'http://localhost:5174'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
 }));
 
 // --- QUAN TRỌNG: SỬA Ở ĐÂY ĐỂ HẾT LỖI PAYLOAD TOO LARGE ---
@@ -28,17 +29,40 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // 2. Sử dụng routes
 app.use('/api/auth', authRoutes);
+
 app.use('/api/categories', categoryRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/jobs', jobRoutes);
 
+
+
+// Serve file upload tĩnh (ảnh avatar, cover, CV...)
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({
+        success: false,
+        message: err.message || 'Lỗi server nội bộ!'
+    });
+});
+
+// THÊM DÒNG NÀY CHO ADMIN:
+app.use('/api/admin', require('./routes/admin/adminRoutes'));
+// 2. Import Routes (Sau này bạn sẽ import authRoutes, jobRoutes vào đây)
+// const authRoutes = require('./routes/authRoutes');
+// app.use('/api/auth', authRoutes);
+
+
+
 // Route test cho Employer
 app.post('/api/jobs/create', verifyToken, authorizeRole(['employer']), (req, res) => {
-    res.json({ 
-        message: 'Đăng tin thành công!', 
-        user: req.user 
+    res.json({
+        message: 'Đăng tin thành công!',
+        user: req.user
     });
 });
 

@@ -6,18 +6,18 @@ const rateLimit = require('express-rate-limit');
 const { body } = require('express-validator');
 
 const upload = require('../middlewares/uploadMiddleware');
- 
+
 
 // --- 1. CẤU HÌNH KHIÊN ---
 
 // Giới hạn login
 const loginLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000, 
-    max: 5, 
+    windowMs: 1 * 60 * 1000,
+    max: 5,
     // THÊM DÒNG NÀY ĐỂ HẾT LỖI ĐỎ TERMINAL
-    validate: { xForwardedForHeader: false, default: false }, 
+    validate: { xForwardedForHeader: false, default: false },
     keyGenerator: (req) => {
-        return req.body.email || req.ip; 
+        return req.body.email || req.ip;
     },
     handler: (req, res) => {
         res.status(429).json({
@@ -40,7 +40,7 @@ const apiLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     // Dòng này là bắt buộc để fix lỗi ERR_ERL_KEY_GEN_IPV6 trên localhost
-    validate: { xForwardedForHeader: false, default: false }, 
+    validate: { xForwardedForHeader: false, default: false },
 });
 
 // router.use(apiLimiter);
@@ -53,6 +53,8 @@ router.post('/login', loginLimiter, authController.login);
 // Lấy profile
 router.get('/profile', verifyToken, authController.getProfile);
 
+router.put('/profile', verifyToken, upload.single('cv_file'), authController.updateProfile);
+
 // Route gửi mã OTP quên mật khẩu
 router.post('/forgot-password', authController.forgotPassword);
 
@@ -62,17 +64,15 @@ router.post('/reset-password', authController.resetPassword);
 router.post('/verify-email', authController.verifyEmail);
 
 
-router.get(
-    '/profile',
-    verifyToken,
-    authController.getProfile
-);
 
-router.put(
-    '/profile',
-    verifyToken,
-    upload.single('cv_file'),
-    authController.updateProfile
-);
+
+
+
+//Rout đăng nhập bằng Google
+router.post('/google', authController.googleLogin);
+//admin
+router.post('/admin-login', authController.adminLogin);
+router.post('/verify-login-otp', authController.verifyLoginOTP);
+
 
 module.exports = router;
