@@ -1,103 +1,31 @@
-const express = require('express');
-const router = express.Router();
-const authController = require('../controllers/authController');
-const { verifyToken } = require('../middlewares/authMiddleware');
-const rateLimit = require('express-rate-limit');
-const { body } = require('express-validator');
+const jwt = require('jsonwebtoken');
 
-const upload = require('../middlewares/uploadMiddleware');
+// Hàm kiểm tra xem người dùng đã đăng nhập chưa
+exports.verifyToken = (req, res, next) => {
+    // Lấy token từ header "Authorization"
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Cắt bỏ chữ "Bearer "
 
-
-// --- 1. CẤU HÌNH KHIÊN ---
-
-// Giới hạn login
-const loginLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000,
-    max: 5,
-    // THÊM DÒNG NÀY ĐỂ HẾT LỖI ĐỎ TERMINAL
-    validate: { xForwardedForHeader: false, default: false },
-    keyGenerator: (req) => {
-        return req.body.email || req.ip;
-    },
-    handler: (req, res) => {
-        res.status(429).json({
-            success: false,
-            message: `Tài khoản ${req.body.email} đã bị tạm khóa 1 phút do nhập sai nhiều lần.`
-        });
+    if (!token) {
+        return res.status(401).json({ success: false, message: "Bạn cần đăng nhập để thực hiện thao tác này" });
     }
-});
 
-// Kiểm tra dữ liệu đăng ký
-const registerValidation = [
-    body('email').isEmail().withMessage('Định dạng email không hợp lệ!'),
-    body('password').isLength({ min: 6 }).withMessage('Mật khẩu phải có ít nhất 6 ký tự!'),
-    body('username').notEmpty().withMessage('Tên không được để trống!')
-];
+    try {
+        // Giải mã token bằng Secret Key trong file .env
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded; // Lưu thông tin user vào request để Controller sử dụng
+        next(); // Cho phép đi tiếp vào Controller
+    } catch (error) {
+        return res.status(403).json({ success: false, message: "Token không hợp lệ hoặc đã hết hạn" });
+    }
+};
 
-const apiLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000,
-    max: 100,
-    standardHeaders: true,
-    legacyHeaders: false,
-    // Dòng này là bắt buộc để fix lỗi ERR_ERL_KEY_GEN_IPV6 trên localhost
-    validate: { xForwardedForHeader: false, default: false },
-});
-
-// router.use(apiLimiter);
-// Đăng ký (Có validation)
-router.post('/register', registerValidation, authController.register);
-
-// Đăng nhập (Có giới hạn lần thử)
-router.post('/login', loginLimiter, authController.login);
-
-// Lấy profile
-router.get('/profile', verifyToken, authController.getProfile);
-
-router.put('/profile', verifyToken, upload.single('cv_file'), authController.updateProfile);
-
-// Route gửi mã OTP quên mật khẩu
-router.post('/forgot-password', authController.forgotPassword);
-
-// Route thực hiện đặt lại mật khẩu mới
-router.post('/reset-password', authController.resetPassword);
-// Thêm route xác thực email
-router.post('/verify-email', authController.verifyEmail);
-
-
-
-
-
-
-
-//Rout đăng nhập bằng Google
-router.post('/google', authController.googleLogin);
-//admin
-router.post('/admin-login', authController.adminLogin);
-router.post('/verify-login-otp', authController.verifyLoginOTP);
-
-
-
-
-
-router.get(
-    '/profile',
-    verifyToken,
-    authController.getProfile
-);
-
-router.put(
-    '/profile',
-    verifyToken,
-    upload.single('cv_file'),
-    authController.updateProfile
-);
-
-
-//Rout đăng nhập bằng Google
-router.post('/google', authController.googleLogin);
-//admin
-router.post('/admin-login', authController.adminLogin);
-router.post('/verify-login-otp', authController.verifyLoginOTP);
-
-
-module.exports = router;
+// Hàm kiểm tra quyền (Employer hay Candidate)
+exports.authorizeRole = (roles) => {
+    return (req, res, next) => {
+        if (!roles.includes(req.user.role)) {
+            return res.status(403).json({ success: false, message: "Bạn không có quyền thực hiện hành động này" });
+        }
+        next();
+    };
+};
