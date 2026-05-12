@@ -22,13 +22,18 @@ app.use(cors({
     credentials: true
 }));
 
+
 // --- QUAN TRỌNG: SỬA Ở ĐÂY ĐỂ HẾT LỖI PAYLOAD TOO LARGE ---
 app.use(express.json({ limit: '50mb' })); 
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // -------------------------------------------------------
 
-// 2. Sử dụng routes
+app.use(express.json()); // Đọc dữ liệu JSON từ req.body
+app.use(express.urlencoded({ extended: true }));
+app.use('/api/applications', applicationRoutes);
+// Sử dụng routes
 app.use('/api/auth', authRoutes);
+
 
 app.use('/api/categories', categoryRoutes);
 app.use('/api/locations', locationRoutes);
@@ -41,6 +46,11 @@ app.use('/api/jobs', jobRoutes);
 // Serve file upload tĩnh (ảnh avatar, cover, CV...)
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+
+app.use('/api/categories', require('./routes/categoryRoutes'));
+app.use('/api/locations', require('./routes/locationRoutes'));
+app.use('/api/jobs', require('./routes/jobRoutes'));
 
 app.use((err, req, res, next) => {
     console.error(err.stack);
@@ -56,6 +66,16 @@ app.use('/api/admin', require('./routes/admin/adminRoutes'));
 // const authRoutes = require('./routes/authRoutes');
 // app.use('/api/auth', authRoutes);
 
+
+
+
+// 2. Sử dụng routes
+app.use('/api/auth', authRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/locations', locationRoutes);
+app.use('/api/applications', applicationRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/jobs', jobRoutes);
 
 
 // Route test cho Employer

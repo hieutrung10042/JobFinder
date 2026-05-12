@@ -68,6 +68,31 @@ router.post('/verify-email', authController.verifyEmail);
 
 
 
+
+//Rout đăng nhập bằng Google
+router.post('/google', authController.googleLogin);
+//admin
+router.post('/admin-login', authController.adminLogin);
+router.post('/verify-login-otp', authController.verifyLoginOTP);
+
+
+
+
+
+router.get(
+    '/profile',
+    verifyToken,
+    authController.getProfile
+);
+
+router.put(
+    '/profile',
+    verifyToken,
+    upload.single('cv_file'),
+    authController.updateProfile
+);
+
+
 //Rout đăng nhập bằng Google
 router.post('/google', authController.googleLogin);
 //admin

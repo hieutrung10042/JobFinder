@@ -435,3 +435,4 @@ INSERT IGNORE INTO Applications (candidate_id, job_id, cover_letter, status) VAL
 -- 8. TỐI ƯU TRUY VẤN
 CREATE INDEX idx_job_status ON Jobs(status);
 CREATE INDEX idx_application_status ON Applications(status);
+

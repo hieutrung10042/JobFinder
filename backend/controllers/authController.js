@@ -234,18 +234,27 @@ exports.login = async (req, res) => {
 // ================= GET PROFILE =================
 exports.getProfile = async (req, res) => {
   try {
+
     const userId = req.user.id;
 
-    // 1. Lấy thông tin Profile cơ bản (bao gồm bio, location, title...)
     const [profiles] = await db.query(
-      "SELECT id, full_name, title, location, bio, cv_url FROM Profiles WHERE user_id = ?",
+      `
+      SELECT
+        id,
+        full_name,
+        title,
+        location,
+        bio,
+        cv_url
+      FROM Profiles
+      WHERE user_id = ?
+      `,
       [userId]
     );
 
-    // Nếu chưa có profile trong DB
     if (profiles.length === 0) {
       return res.json({
-        success: true, // Thêm flag success để frontend dễ check
+        success: true,
         profile: null,
         experience: [],
         skills: [],
@@ -254,14 +263,20 @@ exports.getProfile = async (req, res) => {
 
     const profile = profiles[0];
 
-    // 2. Lấy danh sách kinh nghiệm làm việc
-    // Chỉnh sửa alias (as) để khớp chính xác với state của Frontend
     const [experience] = await db.query(
-      "SELECT company_name as company, position as role, description FROM Work_Experience WHERE profile_id = ?",
+      `
+      SELECT
+        company_name as company,
+        position as role,
+        description,
+        start_date,
+        end_date
+      FROM Work_Experience
+      WHERE profile_id = ?
+      `,
       [profile.id]
     );
 
-    // 3. Lấy danh sách kỹ năng
     const [skillsRows] = await db.query(
       `
       SELECT s.name
@@ -272,30 +287,29 @@ exports.getProfile = async (req, res) => {
       [profile.id]
     );
 
-    // Chuyển mảng object [{name: 'React'}, {name: 'Node'}] thành mảng string ['React', 'Node']
-    // Điều này giúp Frontend dễ dàng hiển thị bằng hàm .map()
-    const skills = skillsRows.map(s => s.name);
+    const skills = skillsRows.map((s) => s.name);
 
-    // 4. Trả về kết quả cuối cùng
     res.json({
       success: true,
       profile: {
         ...profile,
-        // Đảm bảo bio không bị null để tránh lỗi hiển thị trên UI
-        bio: profile.bio || "No bio available. Tell us something about yourself!"
+        bio: profile.bio || "",
       },
-      experience: experience || [],
-      skills: skills || [],
+      experience,
+      skills,
     });
 
   } catch (error) {
+
     console.error("Lỗi getProfile:", error);
+
     res.status(500).json({
       success: false,
       message: "Server Error",
     });
   }
 };
+
 // ================= FORGOT PASSWORD =================
 exports.forgotPassword = async (req, res) => {
 
@@ -439,6 +453,7 @@ exports.verifyEmail = async (req, res) => {
 
     if (users.length === 0) {
       return res.status(400).json({
+        success: false,
         message: "OTP không đúng!",
       });
     }
@@ -462,6 +477,7 @@ exports.verifyEmail = async (req, res) => {
   } catch (error) {
 
     res.status(500).json({
+      success: false,
       message: error.message,
     });
   }
@@ -469,96 +485,215 @@ exports.verifyEmail = async (req, res) => {
 
 // ================= UPDATE PROFILE =================
 exports.updateProfile = async (req, res) => {
+
   const connection = await db.getConnection();
 
   try {
+
     await connection.beginTransaction();
 
     const userId = req.user.id;
 
-    // 1. Lấy dữ liệu từ body
-    let { full_name, title, location, bio, experience, skills } = req.body;
+    let {
+      full_name,
+      title,
+      location,
+      bio,
+      experience,
+      skills,
+    } = req.body;
 
-    // MẸO: Nếu gửi qua FormData, experience và skills thường là String. Cần parse về Array.
     if (typeof experience === "string") {
-      try { experience = JSON.parse(experience); } catch (e) { experience = []; }
+      experience = JSON.parse(experience);
     }
+
     if (typeof skills === "string") {
-      try { skills = JSON.parse(skills); } catch (e) { skills = []; }
+      skills = JSON.parse(skills);
     }
 
-    // Xử lý file CV nếu có
-    let cv_url = req.file ? `/uploads/cvs/${req.file.filename}` : null;
+    let cv_url = null;
 
-    // 2. Kiểm tra/Cập nhật bảng Profiles
+    if (req.file) {
+      cv_url = `/uploads/cvs/${req.file.filename}`;
+    }
+
     const [profiles] = await connection.query(
-      "SELECT id, cv_url FROM Profiles WHERE user_id = ?",
+      "SELECT * FROM Profiles WHERE user_id = ?",
       [userId]
     );
 
     let profileId;
+
     if (profiles.length === 0) {
+
       const [result] = await connection.query(
-        "INSERT INTO Profiles (user_id, full_name, title, bio, cv_url) VALUES (?, ?, ?, ?, ?)",
-        [userId, full_name, title, bio, cv_url]
+        `
+        INSERT INTO Profiles
+        (
+          user_id,
+          full_name,
+          title,
+          location,
+          bio,
+          cv_url
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        `,
+        [
+          userId,
+          full_name,
+          title,
+          location,
+          bio,
+          cv_url,
+        ]
       );
+
       profileId = result.insertId;
+
     } else {
+
       profileId = profiles[0].id;
-      const final_cv_url = cv_url || profiles[0].cv_url;
+
+      if (!cv_url) {
+        cv_url = profiles[0].cv_url;
+      }
+
       await connection.query(
-        "UPDATE Profiles SET full_name = ?, title = ?, bio = ?, cv_url = ? WHERE id = ?",
-        [full_name, title, bio, final_cv_url, profileId]
+        `
+        UPDATE Profiles
+        SET
+          full_name = ?,
+          title = ?,
+          location = ?,
+          bio = ?,
+          cv_url = ?
+        WHERE id = ?
+        `,
+        [
+          full_name,
+          title,
+          location,
+          bio,
+          cv_url,
+          profileId,
+        ]
       );
     }
 
-    // 3. Lưu Work Experience (Quan trọng: Kiểm tra mảng trước khi lặp)
-    await connection.query("DELETE FROM Work_Experience WHERE profile_id = ?", [profileId]);
-    if (Array.isArray(experience) && experience.length > 0) {
+    // ===== EXPERIENCE =====
+    await connection.query(
+      "DELETE FROM Work_Experience WHERE profile_id = ?",
+      [profileId]
+    );
+
+    if (Array.isArray(experience)) {
+
       for (const exp of experience) {
-        if (exp.company || exp.role) { // Chỉ lưu nếu có dữ liệu
-          await connection.query(
-            "INSERT INTO Work_Experience (profile_id, company_name, position, description) VALUES (?, ?, ?, ?)",
-            [profileId, exp.company, exp.role, exp.description || ""]
-          );
-        }
+
+        const formatDate = (date) => {
+          if (!date) return null;
+          return new Date(date)
+            .toISOString()
+            .split("T")[0];
+        };
+
+        await connection.query(
+          `
+          INSERT INTO Work_Experience
+          (
+            profile_id,
+            company_name,
+            position,
+            description,
+            start_date,
+            end_date
+          )
+          VALUES (?, ?, ?, ?, ?, ?)
+          `,
+          [
+            profileId,
+            exp.company,
+            exp.role,
+            exp.description || "",
+            formatDate(exp.start_date),
+            formatDate(exp.end_date),
+          ]
+        );
       }
     }
 
-    // 4. Lưu Skills
-    await connection.query("DELETE FROM User_Skills WHERE profile_id = ?", [profileId]);
-    if (Array.isArray(skills) && skills.length > 0) {
+    // ===== SKILLS =====
+    await connection.query(
+      "DELETE FROM User_Skills WHERE profile_id = ?",
+      [profileId]
+    );
+
+    if (Array.isArray(skills)) {
+
       for (const skillName of skills) {
+
         if (!skillName) continue;
 
-        let [skillRows] = await connection.query("SELECT id FROM Skills WHERE name = ?", [skillName]);
+        let [skillRows] = await connection.query(
+          "SELECT * FROM Skills WHERE name = ?",
+          [skillName]
+        );
+
         let skillId;
+
         if (skillRows.length === 0) {
-          const [newSkill] = await connection.query("INSERT INTO Skills (name) VALUES (?)", [skillName]);
+
+          const [newSkill] = await connection.query(
+            "INSERT INTO Skills (name) VALUES (?)",
+            [skillName]
+          );
+
           skillId = newSkill.insertId;
+
         } else {
+
           skillId = skillRows[0].id;
         }
-        await connection.query("INSERT INTO User_Skills (profile_id, skill_id) VALUES (?, ?)", [profileId, skillId]);
+
+        await connection.query(
+          `
+          INSERT INTO User_Skills
+          (profile_id, skill_id)
+          VALUES (?, ?)
+          `,
+          [profileId, skillId]
+        );
       }
     }
 
     await connection.commit();
-    console.log(">>> Đã lưu thành công Profile cho User ID:", userId);
-    res.json({ success: true, message: "Cập nhật hồ sơ thành công!" });
+
+    res.json({
+      success: true,
+      message: "Profile updated",
+    });
 
   } catch (error) {
+
     await connection.rollback();
-    console.error("LỖI KHI LƯU PROFILE:", error);
-    res.status(500).json({ success: false, message: "Lỗi hệ thống", error: error.message });
+
+    console.log(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message,
+    });
+
   } finally {
+
     connection.release();
   }
 };
 
 // ================= GOOGLE LOGIN =================
 exports.googleLogin = async (req, res) => {
-
 
   const { accessToken, role } = req.body;
 
@@ -579,8 +714,6 @@ exports.googleLogin = async (req, res) => {
       picture,
     } = googleResponse.data;
 
-    const autoUsername = email.split("@")[0];
-
     const [users] = await db.execute(
       "SELECT * FROM Users WHERE email = ?",
       [email]
@@ -589,6 +722,8 @@ exports.googleLogin = async (req, res) => {
     let user = users[0];
 
     if (!user) {
+
+      const autoUsername = email.split("@")[0];
 
       const [result] = await db.execute(
         `
@@ -613,13 +748,47 @@ exports.googleLogin = async (req, res) => {
         ]
       );
 
+      const userId = result.insertId;
+
+      if (role === "employer") {
+
+        await db.execute(
+          "INSERT INTO Companies (name) VALUES (?)",
+          [`Công ty của ${name}`]
+        );
+
+      } else {
+
+        await db.execute(
+          `
+          INSERT INTO Profiles
+          (user_id, full_name)
+          VALUES (?, ?)
+          `,
+          [userId, name]
+        );
+      }
+
       user = {
-        id: result.insertId,
+        id: userId,
         username: autoUsername,
         email,
         role: role || "candidate",
         avatar_url: picture,
       };
+
+    } else {
+
+      await db.execute(
+        `
+        UPDATE Users
+        SET avatar_url = ?, is_verified = 1
+        WHERE id = ?
+        `,
+        [picture || user.avatar_url, user.id]
+      );
+
+      user.avatar_url = picture || user.avatar_url;
     }
 
     const token = jwt.sign(
@@ -636,85 +805,24 @@ exports.googleLogin = async (req, res) => {
     res.status(200).json({
       success: true,
       token,
-      user,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        avatar_url: user.avatar_url,
+      },
     });
 
   } catch (error) {
 
-    console.error(error);
+    console.error("Lỗi Google Login:", error);
 
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Lỗi kết nối Google: " + error.message,
     });
   }
-
-    const { accessToken, role } = req.body;
-
-    try {
-        // 1. Lấy thông tin từ Google
-        const googleResponse = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: { Authorization: `Bearer ${accessToken}` }
-        });
-        
-        const { email, name, picture } = googleResponse.data;
-
-        // 2. Kiểm tra xem Email này đã có trong hệ thống chưa
-        const [users] = await db.execute('SELECT * FROM Users WHERE email = ?', [email]);
-        let user = users[0];
-
-        if (!user) {
-            // TRƯỜNG HỢP 1: Email chưa tồn tại -> Tạo tài khoản mới hoàn toàn
-            const autoUsername = email.split('@')[0]; 
-            const [result] = await db.execute(
-                'INSERT INTO Users (username, email, password, role, is_verified, avatar_url, display_name) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [autoUsername, email, 'LOGIN_BY_GOOGLE', role || 'candidate', 1, picture, name] 
-            );
-            
-            const userId = result.insertId;
-            // Tạo Profile đi kèm
-            if (role === 'employer') {
-                await db.execute('INSERT INTO Companies (name) VALUES (?)', [`Công ty của ${name}`]);
-            } else {
-                await db.execute('INSERT INTO Profiles (user_id, full_name) VALUES (?, ?)', [userId, name]);
-            }
-
-            user = { id: userId, email, role: role || 'candidate', username: autoUsername, avatar_url: picture };
-        } else {
-            // TRƯỜNG HỢP 2: Email đã tồn tại (Họ từng đăng ký bằng mật khẩu hoặc Google trước đó)
-            // Cập nhật Avatar và Display Name mới nhất từ Google (nếu cần)
-            await db.execute(
-                'UPDATE Users SET avatar_url = ?, is_verified = 1 WHERE id = ?',
-                [picture || user.avatar_url, user.id]
-            );
-            // Cập nhật lại đối tượng user để trả về frontend
-            user.avatar_url = picture || user.avatar_url;
-        }
-
-        // 3. Tạo Token JWT (Dùng chung cho cả 2 cách đăng nhập)
-        const token = jwt.sign(
-            { id: user.id, role: user.role }, 
-            process.env.JWT_SECRET, 
-            { expiresIn: '7d' }
-        );
-
-        res.status(200).json({ 
-            success: true, 
-            token: token, 
-            user: { 
-                id: user.id,
-                username: user.username, 
-                email: user.email,
-                role: user.role,
-                avatar_url: user.avatar_url 
-            } 
-        });
-
-    } catch (error) {
-        console.error("Lỗi Google Login:", error);
-        res.status(500).json({ success: false, message: "Lỗi kết nối Google: " + error.message });
-    }
-
 };
 
 // ================= ADMIN LOGIN =================
@@ -792,26 +900,57 @@ exports.adminLogin = async (req, res) => {
 // ================= VERIFY LOGIN OTP =================
 exports.verifyLoginOTP = async (req, res) => {
 
-  const { email, otp } = req.body;
-
   try {
 
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng nhập email và OTP",
+      });
+    }
+
     const [users] = await db.execute(
-      `
-      SELECT * FROM Users
-      WHERE email = ? AND otp_code = ?
-      `,
-      [email, otp]
+      "SELECT * FROM Users WHERE email = ?",
+      [email]
     );
 
     if (users.length === 0) {
-      return res.status(400).json({
+      return res.status(404).json({
         success: false,
-        message: "OTP không chính xác!",
+        message: "Không tìm thấy người dùng",
       });
     }
 
     const user = users[0];
+
+    if (user.otp_code !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP không chính xác",
+      });
+    }
+
+    if (
+      !user.otp_expires ||
+      new Date(user.otp_expires) < new Date()
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP đã hết hạn",
+      });
+    }
+
+    await db.execute(
+      `
+      UPDATE Users
+      SET otp_code = NULL,
+          otp_expires = NULL
+      WHERE email = ?
+      `,
+      [email]
+    );
 
     const token = jwt.sign(
       {
@@ -824,17 +963,27 @@ exports.verifyLoginOTP = async (req, res) => {
       }
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
+      message: "Đăng nhập thành công!",
       token,
-      user,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        avatar_url: user.avatar_url,
+      },
     });
 
   } catch (error) {
 
-    res.status(500).json({
+    console.error("Lỗi tại verifyLoginOTP:", error);
+
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        "Lỗi server khi xác thực OTP: " + error.message,
     });
   }
 };
