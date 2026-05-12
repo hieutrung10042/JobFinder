@@ -113,3 +113,23 @@ export async function deleteCV(): Promise<void> {
         throw new Error(err.message || 'Xóa CV thất bại');
     }
 }
+export const uploadProfileImage = async (
+  file: File,
+  type: 'avatar' | 'cover'
+) => {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const res = await fetch(
+    `${import.meta.env.VITE_API_URL}/api/profile/upload-${type}`,
+    {
+      method: 'POST',
+      body: formData,
+      credentials: 'include'
+    }
+  );
+
+  if (!res.ok) throw new Error('Upload thất bại');
+
+  return res.json(); // { image_url: string }
+};
