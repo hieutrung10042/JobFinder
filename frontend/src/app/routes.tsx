@@ -9,6 +9,9 @@ import CandidateDetail from "./pages/employer/CandidateDetail";
 import Settings from "./pages/shared/Settings";
 import Auth from "./pages/auth/Auth";
 import MyApplications from "./pages/public/MyApplications";
+
+
+
 export const router = createBrowserRouter([
   {
     path: "/",
