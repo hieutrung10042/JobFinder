@@ -559,6 +559,7 @@ exports.updateProfile = async (req, res) => {
 // ================= GOOGLE LOGIN =================
 exports.googleLogin = async (req, res) => {
 
+
   const { accessToken, role } = req.body;
 
   try {
@@ -647,6 +648,73 @@ exports.googleLogin = async (req, res) => {
       message: error.message,
     });
   }
+
+    const { accessToken, role } = req.body;
+
+    try {
+        // 1. Lấy thông tin từ Google
+        const googleResponse = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        
+        const { email, name, picture } = googleResponse.data;
+
+        // 2. Kiểm tra xem Email này đã có trong hệ thống chưa
+        const [users] = await db.execute('SELECT * FROM Users WHERE email = ?', [email]);
+        let user = users[0];
+
+        if (!user) {
+            // TRƯỜNG HỢP 1: Email chưa tồn tại -> Tạo tài khoản mới hoàn toàn
+            const autoUsername = email.split('@')[0]; 
+            const [result] = await db.execute(
+                'INSERT INTO Users (username, email, password, role, is_verified, avatar_url, display_name) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [autoUsername, email, 'LOGIN_BY_GOOGLE', role || 'candidate', 1, picture, name] 
+            );
+            
+            const userId = result.insertId;
+            // Tạo Profile đi kèm
+            if (role === 'employer') {
+                await db.execute('INSERT INTO Companies (name) VALUES (?)', [`Công ty của ${name}`]);
+            } else {
+                await db.execute('INSERT INTO Profiles (user_id, full_name) VALUES (?, ?)', [userId, name]);
+            }
+
+            user = { id: userId, email, role: role || 'candidate', username: autoUsername, avatar_url: picture };
+        } else {
+            // TRƯỜNG HỢP 2: Email đã tồn tại (Họ từng đăng ký bằng mật khẩu hoặc Google trước đó)
+            // Cập nhật Avatar và Display Name mới nhất từ Google (nếu cần)
+            await db.execute(
+                'UPDATE Users SET avatar_url = ?, is_verified = 1 WHERE id = ?',
+                [picture || user.avatar_url, user.id]
+            );
+            // Cập nhật lại đối tượng user để trả về frontend
+            user.avatar_url = picture || user.avatar_url;
+        }
+
+        // 3. Tạo Token JWT (Dùng chung cho cả 2 cách đăng nhập)
+        const token = jwt.sign(
+            { id: user.id, role: user.role }, 
+            process.env.JWT_SECRET, 
+            { expiresIn: '7d' }
+        );
+
+        res.status(200).json({ 
+            success: true, 
+            token: token, 
+            user: { 
+                id: user.id,
+                username: user.username, 
+                email: user.email,
+                role: user.role,
+                avatar_url: user.avatar_url 
+            } 
+        });
+
+    } catch (error) {
+        console.error("Lỗi Google Login:", error);
+        res.status(500).json({ success: false, message: "Lỗi kết nối Google: " + error.message });
+    }
+
 };
 
 // ================= ADMIN LOGIN =================
