@@ -626,35 +626,35 @@ const [coverSrc, setCoverSrc] = useState<string>(DEFAULT_COVER);
       {modal === 'personalInfo' && (
         <EditModal title="Chỉnh sửa thông tin cá nhân" onClose={() => setModal(null)} onSave={handleSave} saving={saving}>
           <Field label="Họ và tên *">
-            <input className={inputCls} placeholder="Nguyễn Văn A" value={editPI.full_name}
+            <input className={inputCls} placeholder="Nguyễn Văn A" value={editPI.full_name || ''}
               onChange={e => setEditPI(p => ({ ...p, full_name: e.target.value }))} />
           </Field>
           <Field label="Chức danh">
-            <input className={inputCls} placeholder="Senior Frontend Engineer" value={editPI.title}
+            <input className={inputCls} placeholder="Senior Frontend Engineer" value={editPI.title || ''}
               onChange={e => setEditPI(p => ({ ...p, title: e.target.value }))} />
           </Field>
           <Field label="Giới thiệu bản thân">
             <textarea className={inputCls + ' h-24 resize-none'} placeholder="Một vài dòng về bạn..."
-              value={editPI.bio}
+              value={editPI.bio || ''}
               onChange={e => setEditPI(p => ({ ...p, bio: e.target.value }))} />
           </Field>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Địa điểm">
-              <input className={inputCls} placeholder="TP. Hồ Chí Minh" value={editPI.location}
+              <input className={inputCls} placeholder="TP. Hồ Chí Minh" value={editPI.location || ''}
                 onChange={e => setEditPI(p => ({ ...p, location: e.target.value }))} />
             </Field>
             <Field label="Số điện thoại">
-              <input className={inputCls} placeholder="0901 234 567" value={editPI.phone}
+              <input className={inputCls} placeholder="0901 234 567" value={editPI.phone || ''}
                 onChange={e => setEditPI(p => ({ ...p, phone: e.target.value }))} />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Ngày sinh">
-              <input type="date" className={inputCls} value={editPI.dob}
+              <input type="date" className={inputCls} value={editPI.dob || ''}
                 onChange={e => setEditPI(p => ({ ...p, dob: e.target.value }))} />
             </Field>
             <Field label="Giới tính">
-              <select className={inputCls} value={editPI.gender}
+              <select className={inputCls} value={editPI.gender || ''}
                 onChange={e => setEditPI(p => ({ ...p, gender: e.target.value as any }))}>
                 <option value="">-- Chọn --</option>
                 <option value="male">Nam</option>
