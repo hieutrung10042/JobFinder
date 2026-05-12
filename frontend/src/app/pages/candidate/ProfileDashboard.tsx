@@ -150,6 +150,9 @@ export default function ProfileDashboard() {
         setExperiences(data.experiences);
         setEducation(data.education);
         setSkills(data.skills);
+
+        setAvatarSrc(data.personalInfo.avatar_url || DEFAULT_AVATAR);
+      setCoverSrc(data.personalInfo.cover_url || DEFAULT_COVER);
       })
       .catch(() => showToast('error', 'Không thể tải hồ sơ'))
       .finally(() => setLoading(false));
@@ -194,7 +197,7 @@ export default function ProfileDashboard() {
       setSaving(false);
     }
   };
-
+  
   // ── CV Upload ─────────────────────────────────────────────────────────────
   const handleCVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -223,6 +226,33 @@ export default function ProfileDashboard() {
     }
   };
 
+
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+const coverInputRef = useRef<HTMLInputElement>(null);
+
+
+const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onloadend = () => {
+    setAvatarSrc(reader.result as string);
+  };
+  reader.readAsDataURL(file);
+};
+
+const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onloadend = () => {
+    setCoverSrc(reader.result as string);
+  };
+  reader.readAsDataURL(file);
+};
   // ── Experience helpers ────────────────────────────────────────────────────
   const addExp = () => setEditExp(prev => [...prev, {
     company_name: '', position: '', description: '', start_date: '', end_date: ''
@@ -246,8 +276,8 @@ export default function ProfileDashboard() {
   };
 
   // ─── Render ───────────────────────────────────────────────────────────────
-  const avatarSrc = personalInfo.avatar_url || DEFAULT_AVATAR;
-  const coverSrc  = personalInfo.cover_url  || DEFAULT_COVER;
+  const [avatarSrc, setAvatarSrc] = useState<string>(DEFAULT_AVATAR);
+const [coverSrc, setCoverSrc] = useState<string>(DEFAULT_COVER);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
@@ -292,78 +322,104 @@ export default function ProfileDashboard() {
 
               {/* ── Hero Card ── */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="h-32 md:h-48 w-full relative">
-                  {loading
-                    ? <Skeleton className="w-full h-full rounded-none" />
-                    : <img src={coverSrc} alt="Cover" className="w-full h-full object-cover" />}
-                  <button
-                    onClick={() => openModal('personalInfo')}
-                    className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm p-2 rounded-lg text-gray-700 hover:bg-white transition-colors shadow">
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                </div>
+  <div className="h-32 md:h-48 w-full relative">
+    {loading
+      ? <Skeleton className="w-full h-full rounded-none" />
+      : <img src={coverSrc} alt="Cover" className="w-full h-full object-cover" />}
 
-                <div className="px-6 md:px-8 pb-8 relative">
-                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 -mt-12 md:-mt-16 mb-4">
-                    <div className="relative w-24 h-24 md:w-32 md:h-32">
-                      {loading
-                        ? <Skeleton className="w-full h-full rounded-full" />
-                        : <img src={avatarSrc} alt="Avatar"
-                            className="w-full h-full rounded-full border-4 border-white object-cover shadow-md" />}
-                      <button
-                        onClick={() => openModal('personalInfo')}
-                        className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow border border-gray-100 text-gray-600 hover:text-blue-600 transition-colors">
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                    </div>
+    {/* 🎯 Cover button */}
+    <button
+      onClick={() => coverInputRef.current?.click()}
+      className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm p-2 rounded-lg text-gray-700 hover:bg-white transition-colors shadow">
+      <Edit2 className="w-4 h-4" />
+    </button>
 
-                    <button
-                      onClick={() => openModal('personalInfo')}
-                      className="self-start md:self-auto px-6 py-2.5 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors flex items-center gap-2">
-                      <Edit2 className="w-4 h-4" /> Chỉnh sửa hồ sơ
-                    </button>
-                  </div>
+    {/* input cover ẩn */}
+    <input
+      type="file"
+      ref={coverInputRef}
+      accept="image/*"
+      className="hidden"
+      onChange={handleCoverChange}
+    />
+  </div>
 
-                  {loading ? (
-                    <div className="space-y-3">
-                      <Skeleton className="h-8 w-48" />
-                      <Skeleton className="h-5 w-72" />
-                      <Skeleton className="h-4 w-56" />
-                    </div>
-                  ) : (
-                    <div>
-                      <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
-                        {personalInfo.full_name || 'Chưa có tên'}
-                      </h1>
-                      <p className="text-lg text-gray-600 mt-1 font-medium">
-                        {personalInfo.title || 'Chưa có chức danh'}
-                      </p>
-                      {personalInfo.bio && (
-                        <p className="text-sm text-gray-500 mt-2 max-w-2xl leading-relaxed">
-                          {personalInfo.bio}
-                        </p>
-                      )}
-                      <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-gray-500">
-                        {personalInfo.location && (
-                          <span className="flex items-center gap-1.5">
-                            <MapPin className="w-4 h-4" /> {personalInfo.location}
-                          </span>
-                        )}
-                        {personalInfo.phone && (
-                          <span className="flex items-center gap-1.5">
-                            <Phone className="w-4 h-4" /> {personalInfo.phone}
-                          </span>
-                        )}
-                        {personalInfo.dob && (
-                          <span className="flex items-center gap-1.5">
-                            <Calendar className="w-4 h-4" /> {personalInfo.dob}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+  <div className="px-6 md:px-8 pb-8 relative">
+    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 -mt-12 md:-mt-16 mb-4">
+      <div className="relative w-24 h-24 md:w-32 md:h-32">
+        {loading
+          ? <Skeleton className="w-full h-full rounded-full" />
+          : <img
+              src={avatarSrc}
+              alt="Avatar"
+              className="w-full h-full rounded-full border-4 border-white object-cover shadow-md"
+            />}
+
+        {/* 🎯 Avatar button */}
+        <button
+          onClick={() => avatarInputRef.current?.click()}
+          className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow border border-gray-100 text-gray-600 hover:text-blue-600 transition-colors">
+          <Edit2 className="w-4 h-4" />
+        </button>
+
+        {/* input avatar ẩn */}
+        <input
+          type="file"
+          ref={avatarInputRef}
+          accept="image/*"
+          className="hidden"
+          onChange={handleAvatarChange}
+        />
+      </div>
+
+      {/* Nút này vẫn mở modal chỉnh thông tin */}
+      <button
+        onClick={() => openModal('personalInfo')}
+        className="self-start md:self-auto px-6 py-2.5 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors flex items-center gap-2">
+        <Edit2 className="w-4 h-4" /> Chỉnh sửa hồ sơ
+      </button>
+    </div>
+
+    {loading ? (
+      <div className="space-y-3">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-5 w-72" />
+        <Skeleton className="h-4 w-56" />
+      </div>
+    ) : (
+      <div>
+        <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
+          {personalInfo.full_name || 'Chưa có tên'}
+        </h1>
+        <p className="text-lg text-gray-600 mt-1 font-medium">
+          {personalInfo.title || 'Chưa có chức danh'}
+        </p>
+        {personalInfo.bio && (
+          <p className="text-sm text-gray-500 mt-2 max-w-2xl leading-relaxed">
+            {personalInfo.bio}
+          </p>
+        )}
+        <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-gray-500">
+          {personalInfo.location && (
+            <span className="flex items-center gap-1.5">
+              <MapPin className="w-4 h-4" /> {personalInfo.location}
+            </span>
+          )}
+          {personalInfo.phone && (
+            <span className="flex items-center gap-1.5">
+              <Phone className="w-4 h-4" /> {personalInfo.phone}
+            </span>
+          )}
+          {personalInfo.dob && (
+            <span className="flex items-center gap-1.5">
+              <Calendar className="w-4 h-4" /> {personalInfo.dob}
+            </span>
+          )}
+        </div>
+      </div>
+    )}
+  </div>
+</div>
 
               {/* ── Experience ── */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-8">
@@ -569,14 +625,6 @@ export default function ProfileDashboard() {
       {/* ── Modal: Personal Info ── */}
       {modal === 'personalInfo' && (
         <EditModal title="Chỉnh sửa thông tin cá nhân" onClose={() => setModal(null)} onSave={handleSave} saving={saving}>
-          <Field label="Ảnh đại diện (URL)">
-            <input className={inputCls} placeholder="https://..." value={editPI.avatar_url || ''}
-              onChange={e => setEditPI(p => ({ ...p, avatar_url: e.target.value }))} />
-          </Field>
-          <Field label="Ảnh bìa (URL)">
-            <input className={inputCls} placeholder="https://..." value={editPI.cover_url || ''}
-              onChange={e => setEditPI(p => ({ ...p, cover_url: e.target.value }))} />
-          </Field>
           <Field label="Họ và tên *">
             <input className={inputCls} placeholder="Nguyễn Văn A" value={editPI.full_name}
               onChange={e => setEditPI(p => ({ ...p, full_name: e.target.value }))} />

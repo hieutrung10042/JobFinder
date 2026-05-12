@@ -7,6 +7,7 @@ const RECOMMENDED_JOBS = [
   { id: 'JOB-103', title: 'UI/UX Engineer', company: 'StartupX', location: 'Da Nang', salary: 'Negotiable', type: 'Full-time', match: 76 },
 ];
 
+
 export const RecommendedJobs = () => {
   return (
     <div className="mb-10">
