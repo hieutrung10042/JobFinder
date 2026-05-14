@@ -12,6 +12,7 @@ import {
   getProfile, saveProfile, uploadCV, deleteCV,
   PersonalInfo, WorkExperience, Education
 } from '../../../services/profileService';
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ToastState {
   type: 'success' | 'error';
