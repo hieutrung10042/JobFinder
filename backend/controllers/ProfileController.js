@@ -60,14 +60,18 @@ exports.getMyProfile = async (req, res) => {
         );
 
         res.json({
-            success: true,
-            profile: {
-                ...profile,
-                bio: profile.bio || "",
-            },
-            experience,
-            skills: skillsRows.map((s) => s.name),
-        });
+    success: true,
+    profile: {
+        ...profile,
+        bio: profile.bio || "",
+    },
+    experience: experience.map(exp => ({
+        ...exp,
+        start_date: formatDate(exp.start_date),
+        end_date: formatDate(exp.end_date),
+    })),
+    skills: skillsRows.map((s) => s.name),
+});
 
     } catch (error) {
         console.error("[getMyProfile]", error.message);
@@ -114,12 +118,23 @@ exports.getProfile = async (req, res) => {
         }
 
         res.status(200).json({
-            success: true,
-            personalInfo,
-            experiences,
-            education,
-            skills: skills.map(s => s.name),
-        });
+    success: true,
+    personalInfo: {
+        ...personalInfo,
+        dob: formatDate(personalInfo.dob),
+    },
+    experiences: experiences.map(exp => ({
+        ...exp,
+        start_date: formatDate(exp.start_date),
+        end_date: formatDate(exp.end_date),
+    })),
+    education: education.map(edu => ({
+        ...edu,
+        start_date: formatDate(edu.start_date),
+        end_date: formatDate(edu.end_date),
+    })),
+    skills: skills.map(s => s.name),
+});
 
     } catch (error) {
         console.error("[getProfile]", error.message);
