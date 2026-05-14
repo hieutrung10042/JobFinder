@@ -20,16 +20,16 @@ interface ToastState {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SIDEBAR_NAV = [
-  { id: 'profile',      label: 'Hồ sơ',           icon: User },
-  { id: 'cv-builder',   label: 'Tạo CV',           icon: PenTool },
-  { id: 'recommended',  label: 'Việc làm phù hợp', icon: Sparkles },
-  { id: 'applications', label: 'Đã ứng tuyển',     icon: Briefcase },
-  { id: 'saved',        label: 'Việc đã lưu',      icon: Bookmark },
-  { id: 'notifications',label: 'Thông báo',        icon: Bell },
+  { id: 'profile', label: 'Hồ sơ', icon: User },
+  { id: 'cv-builder', label: 'Tạo CV', icon: PenTool },
+  { id: 'recommended', label: 'Việc làm phù hợp', icon: Sparkles },
+  { id: 'applications', label: 'Đã ứng tuyển', icon: Briefcase },
+  { id: 'saved', label: 'Việc đã lưu', icon: Bookmark },
+  { id: 'notifications', label: 'Thông báo', icon: Bell },
 ];
 
 const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1762522926157-bcc04bf0b10a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400';
-const DEFAULT_COVER  = 'https://images.unsplash.com/photo-1646038572822-432f8ccf2522?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080';
+const DEFAULT_COVER = 'https://images.unsplash.com/photo-1646038572822-432f8ccf2522?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080';
 
 // ─── Toast component ──────────────────────────────────────────────────────────
 function Toast({ toast, onClose }: { toast: ToastState; onClose: () => void }) {
@@ -114,16 +114,16 @@ export default function ProfileDashboard() {
     phone: '', gender: '', dob: '', avatar_url: null, cover_url: null, cv_url: null,
     social_links: {}
   });
-  const [experiences, setExperiences]   = useState<WorkExperience[]>([]);
-  const [education, setEducation]       = useState<Education[]>([]);
-  const [skills, setSkills]             = useState<string[]>([]);
+  const [experiences, setExperiences] = useState<WorkExperience[]>([]);
+  const [education, setEducation] = useState<Education[]>([]);
+  const [skills, setSkills] = useState<string[]>([]);
 
   // UI state
-  const [loading, setLoading]       = useState(true);
-  const [saving, setSaving]         = useState(false);
-  const [toast, setToast]           = useState<ToastState | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
   const [cvUploading, setCvUploading] = useState(false);
-  const cvInputRef                  = useRef<HTMLInputElement>(null);
+  const cvInputRef = useRef<HTMLInputElement>(null);
 
   // Modal state
   const [modal, setModal] = useState<
@@ -131,9 +131,9 @@ export default function ProfileDashboard() {
   >(null);
 
   // Temp edit state (used inside modals)
-  const [editPI, setEditPI]     = useState<PersonalInfo>(personalInfo);
-  const [editExp, setEditExp]   = useState<WorkExperience[]>([]);
-  const [editEdu, setEditEdu]   = useState<Education[]>([]);
+  const [editPI, setEditPI] = useState<PersonalInfo>(personalInfo);
+  const [editExp, setEditExp] = useState<WorkExperience[]>([]);
+  const [editEdu, setEditEdu] = useState<Education[]>([]);
   const [editSkills, setEditSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState('');
 
@@ -151,7 +151,7 @@ export default function ProfileDashboard() {
         setSkills(data.skills);
 
         setAvatarSrc(data.personalInfo.avatar_url || DEFAULT_AVATAR);
-      setCoverSrc(data.personalInfo.cover_url || DEFAULT_COVER);
+        setCoverSrc(data.personalInfo.cover_url || DEFAULT_COVER);
       })
       .catch(() => showToast('error', 'Không thể tải hồ sơ'))
       .finally(() => setLoading(false));
@@ -162,41 +162,117 @@ export default function ProfileDashboard() {
 
   const openModal = (type: typeof modal) => {
     if (type === 'personalInfo') setEditPI({ ...personalInfo });
-    if (type === 'experience')   setEditExp(experiences.map(e => ({ ...e })));
-    if (type === 'education')    setEditEdu(education.map(e => ({ ...e })));
-    if (type === 'skills')       setEditSkills([...skills]);
+    if (type === 'experience') setEditExp(experiences.map(e => ({ ...e })));
+    if (type === 'education') setEditEdu(education.map(e => ({ ...e })));
+    if (type === 'skills') setEditSkills([...skills]);
     setModal(type);
   };
 
   const handleSave = async () => {
-    setSaving(true);
-    try {
-      let newPI = personalInfo, newExp = experiences, newEdu = education, newSkills = skills;
-      if (modal === 'personalInfo') newPI = editPI;
-      if (modal === 'experience')   newExp = editExp;
-      if (modal === 'education')    newEdu = editEdu;
-      if (modal === 'skills')       newSkills = editSkills;
+  if (!userId) return;
 
-      await saveProfile(userId, {
-        personalInfo: newPI,
-        experiences: newExp,
-        education: newEdu,
-        skills: newSkills,
-      });
+  setSaving(true);
 
-      setPersonalInfo(newPI);
-      setExperiences(newExp);
-      setEducation(newEdu);
-      setSkills(newSkills);
-      setModal(null);
-      showToast('success', 'Hồ sơ đã được cập nhật!');
-    } catch (err: any) {
-      showToast('error', err.message || 'Lưu thất bại');
-    } finally {
-      setSaving(false);
+  try {
+    let newPI = personalInfo;
+    let newExp = experiences;
+    let newEdu = education;
+    let newSkills = skills;
+
+    if (modal === 'personalInfo') newPI = editPI;
+    if (modal === 'experience') newExp = editExp;
+    if (modal === 'education') newEdu = editEdu;
+    if (modal === 'skills') newSkills = editSkills;
+
+    // ===== VALIDATE EXPERIENCE =====
+    if (modal === 'experience') {
+      const hasInvalid = newExp.some(exp =>
+        exp.company_name?.trim() === '' ||
+        exp.position?.trim() === '' ||
+        exp.start_date === ''
+      );
+
+      if (hasInvalid) {
+        showToast('error', 'Vui lòng điền đầy đủ thông tin kinh nghiệm làm việc!');
+        setSaving(false);
+        return;
+      }
     }
-  };
-  
+
+    // ===== VALIDATE EDUCATION =====
+    if (modal === 'education') {
+      const hasInvalid = newEdu.some(edu =>
+        edu.school_name?.trim() === '' ||
+        edu.major?.trim() === '' ||
+        edu.start_date === ''
+      );
+
+      if (hasInvalid) {
+        showToast('error', 'Vui lòng điền đầy đủ thông tin học vấn!');
+        setSaving(false);
+        return;
+      }
+    }
+
+    // ===== VALIDATE SKILLS =====
+    if (modal === 'skills') {
+      const hasInvalid = newSkills.some(skill => skill.trim() === '');
+
+      if (hasInvalid) {
+        showToast('error', 'Kỹ năng không được để trống!');
+        setSaving(false);
+        return;
+      }
+    }
+
+    // ===== GỌI API =====
+    await saveProfile(userId, {
+      personalInfo: newPI,
+      experiences: newExp,
+      education: newEdu,
+      skills: newSkills,
+    });
+
+    setPersonalInfo(newPI);
+    setExperiences(newExp);
+    setEducation(newEdu);
+    setSkills(newSkills);
+
+    setModal(null);
+    showToast('success', 'Hồ sơ đã được cập nhật!');
+  } catch (err: any) {
+    showToast('error', err?.message || 'Lưu thất bại');
+  } finally {
+    setSaving(false);
+  }
+};
+
+  const validateExperience = (list: WorkExperience[]) => {
+  for (const exp of list) {
+    if (
+      !exp.company_name?.trim() ||
+      !exp.position?.trim() ||
+      !exp.start_date
+    ) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const validateEducation = (list: Education[]) => {
+  for (const edu of list) {
+    if (
+      !edu.school_name?.trim() ||
+      !edu.major?.trim() ||
+      !edu.start_date
+    ) {
+      return false;
+    }
+  }
+  return true;
+};
+
   // ── CV Upload ─────────────────────────────────────────────────────────────
   const handleCVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -228,42 +304,94 @@ export default function ProfileDashboard() {
 
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
-const coverInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
 
-const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const reader = new FileReader();
-  reader.onloadend = () => {
-    setAvatarSrc(reader.result as string);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatarSrc(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
-  reader.readAsDataURL(file);
-};
 
-const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const reader = new FileReader();
-  reader.onloadend = () => {
-    setCoverSrc(reader.result as string);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setCoverSrc(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
-  reader.readAsDataURL(file);
-};
+
+  // Hàm giúp chuyển '2025-09-27T17:00:00.000Z' thành '27/09/2025'
+  const formatDate = (dateString: string | undefined | null) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+
+    // Trả về định dạng Ngày/Tháng/Năm theo kiểu VN
+    return date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+
+
   // ── Experience helpers ────────────────────────────────────────────────────
-  const addExp = () => setEditExp(prev => [...prev, {
-    company_name: '', position: '', description: '', start_date: '', end_date: ''
-  }]);
+  const addExp = () => {
+    const last = editExp[editExp.length - 1];
+
+    if (
+      last &&
+      (!last.company_name.trim() ||
+        !last.position.trim() ||
+        !last.start_date)
+    ) {
+      showToast('error', 'Vui lòng nhập đầy đủ thông tin trước khi thêm kinh nghiệm mới.');
+      return;
+    }
+
+    setEditExp(prev => [...prev, {
+      company_name: '',
+      position: '',
+      description: '',
+      start_date: '',
+      end_date: ''
+    }]);
+  };
   const removeExp = (i: number) => setEditExp(prev => prev.filter((_, idx) => idx !== i));
   const updateExp = (i: number, field: keyof WorkExperience, value: string) =>
     setEditExp(prev => prev.map((e, idx) => idx === i ? { ...e, [field]: value } : e));
 
   // ── Education helpers ─────────────────────────────────────────────────────
-  const addEdu = () => setEditEdu(prev => [...prev, {
-    school_name: '', major: '', description: '', start_date: '', end_date: ''
-  }]);
+  const addEdu = () => {
+    const last = editEdu[editEdu.length - 1];
+
+    if (
+      last &&
+      (!last.school_name.trim() ||
+        !last.major.trim() ||
+        !last.start_date)
+    ) {
+      showToast('error', 'Vui lòng nhập đầy đủ thông tin trước khi thêm học vấn mới.');
+      return;
+    }
+
+    setEditEdu(prev => [...prev, {
+      school_name: '',
+      major: '',
+      description: '',
+      start_date: '',
+      end_date: ''
+    }]);
+  };
   const removeEdu = (i: number) => setEditEdu(prev => prev.filter((_, idx) => idx !== i));
   const updateEdu = (i: number, field: keyof Education, value: string) =>
     setEditEdu(prev => prev.map((e, idx) => idx === i ? { ...e, [field]: value } : e));
@@ -276,7 +404,12 @@ const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   const [avatarSrc, setAvatarSrc] = useState<string>(DEFAULT_AVATAR);
-const [coverSrc, setCoverSrc] = useState<string>(DEFAULT_COVER);
+  const [coverSrc, setCoverSrc] = useState<string>(DEFAULT_COVER);
+
+  const formatDateForInput = (dateString?: string | null) => {
+    if (!dateString) return "";
+    return new Date(dateString).toISOString().split("T")[0];
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
@@ -288,11 +421,10 @@ const [coverSrc, setCoverSrc] = useState<string>(DEFAULT_COVER);
           <nav className="space-y-1">
             {SIDEBAR_NAV.map(item => (
               <button key={item.id} onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                  activeTab === item.id
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}>
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === item.id
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}>
                 <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'text-blue-600' : 'text-gray-400'}`} />
                 {item.label}
               </button>
@@ -321,104 +453,104 @@ const [coverSrc, setCoverSrc] = useState<string>(DEFAULT_COVER);
 
               {/* ── Hero Card ── */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-  <div className="h-32 md:h-48 w-full relative">
-    {loading
-      ? <Skeleton className="w-full h-full rounded-none" />
-      : <img src={coverSrc} alt="Cover" className="w-full h-full object-cover" />}
+                <div className="h-32 md:h-48 w-full relative">
+                  {loading
+                    ? <Skeleton className="w-full h-full rounded-none" />
+                    : <img src={coverSrc} alt="Cover" className="w-full h-full object-cover" />}
 
-    {/* 🎯 Cover button */}
-    <button
-      onClick={() => coverInputRef.current?.click()}
-      className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm p-2 rounded-lg text-gray-700 hover:bg-white transition-colors shadow">
-      <Edit2 className="w-4 h-4" />
-    </button>
+                  {/* 🎯 Cover button */}
+                  <button
+                    onClick={() => coverInputRef.current?.click()}
+                    className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm p-2 rounded-lg text-gray-700 hover:bg-white transition-colors shadow">
+                    <Edit2 className="w-4 h-4" />
+                  </button>
 
-    {/* input cover ẩn */}
-    <input
-      type="file"
-      ref={coverInputRef}
-      accept="image/*"
-      className="hidden"
-      onChange={handleCoverChange}
-    />
-  </div>
+                  {/* input cover ẩn */}
+                  <input
+                    type="file"
+                    ref={coverInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleCoverChange}
+                  />
+                </div>
 
-  <div className="px-6 md:px-8 pb-8 relative">
-    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 -mt-12 md:-mt-16 mb-4">
-      <div className="relative w-24 h-24 md:w-32 md:h-32">
-        {loading
-          ? <Skeleton className="w-full h-full rounded-full" />
-          : <img
-              src={avatarSrc}
-              alt="Avatar"
-              className="w-full h-full rounded-full border-4 border-white object-cover shadow-md"
-            />}
+                <div className="px-6 md:px-8 pb-8 relative">
+                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 -mt-12 md:-mt-16 mb-4">
+                    <div className="relative w-24 h-24 md:w-32 md:h-32">
+                      {loading
+                        ? <Skeleton className="w-full h-full rounded-full" />
+                        : <img
+                          src={avatarSrc}
+                          alt="Avatar"
+                          className="w-full h-full rounded-full border-4 border-white object-cover shadow-md"
+                        />}
 
-        {/* 🎯 Avatar button */}
-        <button
-          onClick={() => avatarInputRef.current?.click()}
-          className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow border border-gray-100 text-gray-600 hover:text-blue-600 transition-colors">
-          <Edit2 className="w-4 h-4" />
-        </button>
+                      {/* 🎯 Avatar button */}
+                      <button
+                        onClick={() => avatarInputRef.current?.click()}
+                        className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow border border-gray-100 text-gray-600 hover:text-blue-600 transition-colors">
+                        <Edit2 className="w-4 h-4" />
+                      </button>
 
-        {/* input avatar ẩn */}
-        <input
-          type="file"
-          ref={avatarInputRef}
-          accept="image/*"
-          className="hidden"
-          onChange={handleAvatarChange}
-        />
-      </div>
+                      {/* input avatar ẩn */}
+                      <input
+                        type="file"
+                        ref={avatarInputRef}
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAvatarChange}
+                      />
+                    </div>
 
-      {/* Nút này vẫn mở modal chỉnh thông tin */}
-      <button
-        onClick={() => openModal('personalInfo')}
-        className="self-start md:self-auto px-6 py-2.5 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors flex items-center gap-2">
-        <Edit2 className="w-4 h-4" /> Chỉnh sửa hồ sơ
-      </button>
-    </div>
+                    {/* Nút này vẫn mở modal chỉnh thông tin */}
+                    <button
+                      onClick={() => openModal('personalInfo')}
+                      className="self-start md:self-auto px-6 py-2.5 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors flex items-center gap-2">
+                      <Edit2 className="w-4 h-4" /> Chỉnh sửa hồ sơ
+                    </button>
+                  </div>
 
-    {loading ? (
-      <div className="space-y-3">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-5 w-72" />
-        <Skeleton className="h-4 w-56" />
-      </div>
-    ) : (
-      <div>
-        <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
-          {personalInfo.full_name || 'Chưa có tên'}
-        </h1>
-        <p className="text-lg text-gray-600 mt-1 font-medium">
-          {personalInfo.title || 'Chưa có chức danh'}
-        </p>
-        {personalInfo.bio && (
-          <p className="text-sm text-gray-500 mt-2 max-w-2xl leading-relaxed">
-            {personalInfo.bio}
-          </p>
-        )}
-        <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-gray-500">
-          {personalInfo.location && (
-            <span className="flex items-center gap-1.5">
-              <MapPin className="w-4 h-4" /> {personalInfo.location}
-            </span>
-          )}
-          {personalInfo.phone && (
-            <span className="flex items-center gap-1.5">
-              <Phone className="w-4 h-4" /> {personalInfo.phone}
-            </span>
-          )}
-          {personalInfo.dob && (
-            <span className="flex items-center gap-1.5">
-              <Calendar className="w-4 h-4" /> {personalInfo.dob}
-            </span>
-          )}
-        </div>
-      </div>
-    )}
-  </div>
-</div>
+                  {loading ? (
+                    <div className="space-y-3">
+                      <Skeleton className="h-8 w-48" />
+                      <Skeleton className="h-5 w-72" />
+                      <Skeleton className="h-4 w-56" />
+                    </div>
+                  ) : (
+                    <div>
+                      <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
+                        {personalInfo.full_name || 'Chưa có tên'}
+                      </h1>
+                      <p className="text-lg text-gray-600 mt-1 font-medium">
+                        {personalInfo.title || 'Chưa có chức danh'}
+                      </p>
+                      {personalInfo.bio && (
+                        <p className="text-sm text-gray-500 mt-2 max-w-2xl leading-relaxed">
+                          {personalInfo.bio}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-gray-500">
+                        {personalInfo.location && (
+                          <span className="flex items-center gap-1.5">
+                            <MapPin className="w-4 h-4" /> {personalInfo.location}
+                          </span>
+                        )}
+                        {personalInfo.phone && (
+                          <span className="flex items-center gap-1.5">
+                            <Phone className="w-4 h-4" /> {personalInfo.phone}
+                          </span>
+                        )}
+                        {personalInfo.dob && (
+                          <span className="flex items-center gap-1.5">
+                            <Calendar className="w-4 h-4" /> {personalInfo.dob}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/* ── Experience ── */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-8">
@@ -432,7 +564,7 @@ const [coverSrc, setCoverSrc] = useState<string>(DEFAULT_COVER);
 
                 {loading ? (
                   <div className="space-y-6">
-                    {[1,2].map(i => <Skeleton key={i} className="h-24" />)}
+                    {[1, 2].map(i => <Skeleton key={i} className="h-24" />)}
                   </div>
                 ) : experiences.length === 0 ? (
                   <button onClick={() => openModal('experience')}
@@ -447,7 +579,13 @@ const [coverSrc, setCoverSrc] = useState<string>(DEFAULT_COVER);
                         <h3 className="font-bold text-gray-900">{exp.position}</h3>
                         <p className="text-blue-600 text-sm font-medium mb-1">{exp.company_name}</p>
                         <p className="text-xs text-gray-500 mb-2">
-                          {exp.start_date} — {exp.end_date || 'Hiện tại'}
+                          {exp.start_date && (
+                            <>
+                              {formatDate(exp.start_date)}
+                              {exp.end_date && ` — ${formatDate(exp.end_date)}`}
+                              {!exp.end_date && ' — Hiện tại'}
+                            </>
+                          )}
                         </p>
                         {exp.description && (
                           <p className="text-sm text-gray-600 leading-relaxed">{exp.description}</p>
@@ -472,31 +610,38 @@ const [coverSrc, setCoverSrc] = useState<string>(DEFAULT_COVER);
                   </div>
 
                   {loading ? <Skeleton className="h-20" /> :
-                   education.length === 0 ? (
-                    <button onClick={() => openModal('education')}
-                      className="w-full py-6 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 text-sm hover:border-blue-300 hover:text-blue-500 transition-colors flex flex-col items-center gap-2">
-                      <Plus className="w-5 h-5" /> Thêm học vấn
-                    </button>
-                  ) : (
-                    <div className="space-y-4">
-                      {education.map((edu, i) => (
-                        <div key={i} className="flex gap-4">
-                          <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 border border-blue-100">
-                            <span className="font-bold text-blue-500 text-lg">
-                              {edu.school_name.charAt(0).toUpperCase()}
-                            </span>
+                    education.length === 0 ? (
+                      <button onClick={() => openModal('education')}
+                        className="w-full py-6 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 text-sm hover:border-blue-300 hover:text-blue-500 transition-colors flex flex-col items-center gap-2">
+                        <Plus className="w-5 h-5" /> Thêm học vấn
+                      </button>
+                    ) : (
+                      <div className="space-y-4">
+                        {education.map((edu, i) => (
+                          <div key={i} className="flex gap-4">
+                            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 border border-blue-100">
+                              <span className="font-bold text-blue-500 text-lg">
+                                {edu.school_name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-gray-900">{edu.school_name}</h3>
+                              <p className="text-sm text-gray-600">{edu.major}</p>
+                              <p className="text-xs text-gray-500 mt-0.5">
+                                {edu.start_date && (
+                                  <>
+                                    {formatDate(edu.start_date)}
+                                    {edu.end_date
+                                      ? ` — ${formatDate(edu.end_date)}`
+                                      : ' — Hiện tại'}
+                                  </>
+                                )}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="font-bold text-gray-900">{edu.school_name}</h3>
-                            <p className="text-sm text-gray-600">{edu.major}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">
-                              {edu.start_date} — {edu.end_date || 'Hiện tại'}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    )}
                 </div>
 
                 {/* Skills */}
@@ -599,14 +744,14 @@ const [coverSrc, setCoverSrc] = useState<string>(DEFAULT_COVER);
           )}
 
           {/* ══ Other Tabs ══ */}
-          {activeTab === 'cv-builder'  && <CVBuilder />}
+          {activeTab === 'cv-builder' && <CVBuilder />}
           {activeTab === 'recommended' && <RecommendedJobs />}
-          {!['profile','cv-builder','recommended'].includes(activeTab) && (
+          {!['profile', 'cv-builder', 'recommended'].includes(activeTab) && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
               <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                {activeTab === 'applications'  && <Briefcase className="w-8 h-8 text-gray-400" />}
-                {activeTab === 'saved'          && <Bookmark  className="w-8 h-8 text-gray-400" />}
-                {activeTab === 'notifications'  && <Bell      className="w-8 h-8 text-gray-400" />}
+                {activeTab === 'applications' && <Briefcase className="w-8 h-8 text-gray-400" />}
+                {activeTab === 'saved' && <Bookmark className="w-8 h-8 text-gray-400" />}
+                {activeTab === 'notifications' && <Bell className="w-8 h-8 text-gray-400" />}
               </div>
               <h2 className="text-xl font-bold text-gray-900 mb-2">
                 {SIDEBAR_NAV.find(n => n.id === activeTab)?.label}
@@ -684,12 +829,21 @@ const [coverSrc, setCoverSrc] = useState<string>(DEFAULT_COVER);
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Từ ngày">
-                  <input type="date" className={inputCls} value={exp.start_date}
-                    onChange={e => updateExp(i, 'start_date', e.target.value)} />
+                  <input
+                    type="date"
+                    className={inputCls}
+                    value={formatDateForInput(exp.start_date)}
+                    onChange={e => updateExp(i, 'start_date', e.target.value)}
+                  />
                 </Field>
+
                 <Field label="Đến ngày">
-                  <input type="date" className={inputCls} value={exp.end_date || ''}
-                    onChange={e => updateExp(i, 'end_date', e.target.value)} />
+                  <input
+                    type="date"
+                    className={inputCls}
+                    value={formatDateForInput(exp.end_date)}
+                    onChange={e => updateExp(i, 'end_date', e.target.value)}
+                  />
                 </Field>
               </div>
               <Field label="Mô tả">
