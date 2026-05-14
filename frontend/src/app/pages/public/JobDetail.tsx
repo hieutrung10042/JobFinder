@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
-import { MapPin, DollarSign, Clock, Building, Twitter, Linkedin, Link as LinkIcon, ArrowLeft, CheckCircle2, Upload, FileText, X } from 'lucide-react';
-import { Link, useParams } from 'react-router';
+import { 
+  MapPin, DollarSign, Clock, Building, Twitter, Linkedin, 
+  Link as LinkIcon, ArrowLeft, CheckCircle2, Upload, FileText, X 
+} from 'lucide-react';
+// Sửa thành react-router-dom cho chuẩn web
+import { Link, useParams } from 'react-router-dom';
 
 export default function JobDetail() {
   const { id } = useParams();
@@ -10,11 +14,13 @@ export default function JobDetail() {
   const handleApply = () => {
     setShowApplyModal(true);
     setApplyStep(1);
+    // Khóa cuộn trang nền khi mở Modal
     document.body.style.overflow = 'hidden';
   };
 
   const closeModal = () => {
     setShowApplyModal(false);
+    // Mở lại cuộn trang
     document.body.style.overflow = 'unset';
   };
 
@@ -42,7 +48,9 @@ export default function JobDetail() {
             <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
                 <div>
-                  <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">Senior Frontend Engineer</h1>
+                  <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">
+                    Senior Frontend Engineer {id ? `#${id}` : ''}
+                  </h1>
                   <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-gray-600 mb-6">
                     <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
                       <Building className="w-4 h-4" />

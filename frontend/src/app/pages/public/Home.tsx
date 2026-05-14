@@ -1,12 +1,16 @@
 import React from 'react';
-import { Hero } from "../../components/business/Hero";
-import { JobGrid } from "../../components/business/JobGrid";
+import { Hero } from '../../components/business/Hero'; // Thêm dấu { } bọc quanh Hero // Giữ nguyên Hero của bạn
+import JobGrid from '../../components/public/JobGrid';
 
-export default function Home() {
+const Home: React.FC = () => {
   return (
-    <>
+    <main>
       <Hero />
-      <JobGrid />
-    </>
+      <div className="bg-gray-50">
+        <JobGrid />
+      </div>
+    </main>
   );
-}
+};
+
+export default Home;
