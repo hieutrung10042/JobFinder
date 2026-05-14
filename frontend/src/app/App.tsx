@@ -1,12 +1,16 @@
-import React from 'react';
-import { RouterProvider } from 'react-router';
-import { ThemeProvider } from 'next-themes';
-import { router } from './routes';
+import { Outlet } from "react-router-dom";
+import Navbar from "./components/shared/Navbar";
 
-export default function App() {
+function App() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="light">
-      <RouterProvider router={router} />
-    </ThemeProvider>
+    <div className="app-container">
+      {/* Navbar nằm ở đây sẽ nhận được Context từ RouterProvider trong main.tsx */}
+      <Navbar />
+      <main>
+        <Outlet /> 
+      </main>
+    </div>
   );
 }
+
+export default App;
