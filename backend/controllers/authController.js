@@ -256,24 +256,17 @@ exports.resetPassword = async (req, res) => {
         .json({ success: false, message: "Mã OTP không chính xác!" });
     }
 
-    const user = users[0];
-    const now = new Date();
-    if (now > new Date(user.otp_expires)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Mã OTP đã hết hạn!" });
-    }
+        const user = users[0];
 
-    const isSamePassword = await bcrypt.compare(newPassword, user.password);
-    if (isSamePassword) {
-      return res.status(400).json({
-        success: false,
-        message: "Mật khẩu mới không được trùng với mật khẩu hiện tại!",
-      });
-    }
+        // 2. Kiểm tra mã OTP có hết hạn chưa
+        const now = new Date();
+        if (now > new Date(user.otp_expires)) {
+            return res.status(400).json({ success: false, message: "Mã OTP đã hết hạn!" });
+        }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
+        // 3. Mã OTP đúng -> Băm mật khẩu mới
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
 
     await db.execute(
       "UPDATE Users SET password = ?, otp_code = NULL, otp_expires = NULL WHERE email = ?",
