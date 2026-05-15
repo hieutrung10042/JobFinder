@@ -130,6 +130,23 @@ export default function ProfileDashboard() {
       setPersonalInfo(newPI); setExperiences(newExp); setEducation(newEdu); setSkills(newSkills);
       setModal(null);
       showToast('success', 'Hồ sơ đã được cập nhật!');
+      if (modal === 'personalInfo') {
+        const savedUserStr = localStorage.getItem('user');
+        if (savedUserStr) {
+          const savedUser = JSON.parse(savedUserStr);
+          
+          // Cập nhật full_name và avatar vào localStorage
+          savedUser.full_name = newPI.full_name;
+          if (newPI.avatar_url) savedUser.avatar_url = newPI.avatar_url;
+          
+          localStorage.setItem('user', JSON.stringify(savedUser));
+
+          // Bắn sự kiện "user-profile-updated" cho Navbar bắt lấy
+          window.dispatchEvent(new CustomEvent('user-profile-updated', {
+            detail: { full_name: newPI.full_name, avatar_url: newPI.avatar_url }
+          }));
+        }
+      }
     } catch (err: any) {
       showToast('error', err?.message || 'Lưu thất bại');
     } finally {
@@ -159,6 +176,7 @@ export default function ProfileDashboard() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
+  
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
