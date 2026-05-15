@@ -3,7 +3,7 @@
 // ==========================================
 import React, { useState, useEffect } from 'react';
 import { LayoutGrid, List, MoreVertical, Calendar, Briefcase, ChevronDown, Loader2 } from 'lucide-react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { applicationService } from '../../../services/applicationService';
 import { Candidate } from '../../../types/application';
 import { STATUSES, STATUS_LABEL, STATUS_COLORS } from '../../../constants/status';

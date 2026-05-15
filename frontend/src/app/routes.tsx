@@ -10,6 +10,8 @@ import CandidateManagement from "./pages/employer/CandidateManagement";
 import CandidateDetail from "./pages/employer/CandidateDetail";
 import Settings from "./pages/shared/Settings";
 
+// BỔ SUNG: Import ErrorPage bạn vừa tạo
+import ErrorPage from "./pages/shared/ErrorPage";
 
 // --- PROTECTED ROUTE ---
 const ProtectedRoute = ({ allowedRole }: { allowedRole: string }) => {
@@ -41,6 +43,7 @@ export const router = createBrowserRouter([
   {
     path: "/",
     element: <App />, 
+    errorElement: <ErrorPage />, // BỔ SUNG: Xử lý giao diện lỗi 404 và crash component
     children: [
       { index: true, element: <Home /> },
       { path: "auth", element: <Auth /> },
@@ -49,12 +52,26 @@ export const router = createBrowserRouter([
         path: "job/:id", 
         element: <JobDetail /> 
       },
+      
+      // --- ROUTES CHO ỨNG VIÊN (CANDIDATE) ---
       {
         element: <ProtectedRoute allowedRole="candidate" />,
         children: [
+          { path: "profile", element: <ProfileDashboard /> }, // BỔ SUNG: Route trang profile
           { path: "applications", element: <MyApplications /> },
+          { path: "settings", element: <Settings /> },        // BỔ SUNG: Route cài đặt chung
         ],
       },
+
+      // --- ROUTES CHO NHÀ TUYỂN DỤNG (EMPLOYER) ---
+      {
+        element: <ProtectedRoute allowedRole="employer" />,
+        children: [
+          { path: "employer/dashboard", element: <EmployerDashboard /> }, // BỔ SUNG
+          { path: "employer/candidates", element: <CandidateManagement /> }, // BỔ SUNG
+          { path: "employer/candidate/:id", element: <CandidateDetail /> },  // BỔ SUNG
+        ],
+      }
     ],
   },
 ]);

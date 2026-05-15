@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Briefcase, Users, MessageSquare, Eye, Plus, MoreVertical, MapPin, Clock, Loader2 } from 'lucide-react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { applicationService } from '../../../services/applicationService';
 import { Job, Stats } from '../../../types/application';
 import { timeAgo } from '../../../utils/format';

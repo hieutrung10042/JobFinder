@@ -1,16 +1,20 @@
-import { Outlet } from "react-router-dom";
-import Navbar from "./components/shared/Navbar";
+import React from 'react';
+import { Outlet } from 'react-router-dom'; // QUAN TRỌNG: Dùng react-router-dom
+import { ThemeProvider } from 'next-themes';
+import Navbar from './components/shared/Navbar'; // Đảm bảo đúng đường dẫn file Navbar của bạn
 
-function App() {
+export default function App() {
   return (
-    <div className="app-container">
-      {/* Navbar nằm ở đây sẽ nhận được Context từ RouterProvider trong main.tsx */}
-      <Navbar />
-      <main>
-        <Outlet /> 
-      </main>
-    </div>
+    <ThemeProvider attribute="class" defaultTheme="light">
+      <div className="min-h-screen bg-white dark:bg-slate-950">
+        {/* Navbar sẽ luôn hiện ở mọi trang */}
+        <Navbar /> 
+
+        {/* Outlet là nơi nội dung các trang con (Home, Dashboard, JobDetail...) sẽ hiển thị */}
+        <main>
+          <Outlet /> 
+        </main>
+      </div>
+    </ThemeProvider>
   );
 }
-
-export default App;

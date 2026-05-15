@@ -292,7 +292,6 @@ exports.updateProfile = async (req, res) => {
                 personalInfo.gender       || null,
                 personalInfo.dob          || null,
                 personalInfo.location     || null,
-                formatDate(personalInfo.dob),
                 personalInfo.social_links ? JSON.stringify(personalInfo.social_links) : null,
                 userId,
             ]
