@@ -1,14 +1,22 @@
 import React from 'react';
-import { RouterProvider } from 'react-router';
+import { Outlet } from 'react-router-dom';
 import { ThemeProvider } from 'next-themes';
-import { router } from './routes';
 import { Toaster } from 'react-hot-toast';
+
+import Navbar from './components/shared/Navbar';
 
 export default function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="light">
       <Toaster position="top-right" />
-      <RouterProvider router={router} />
+
+      <div className="min-h-screen bg-white dark:bg-slate-950">
+        <Navbar />
+
+        <main>
+          <Outlet />
+        </main>
+      </div>
     </ThemeProvider>
   );
 }

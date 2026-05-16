@@ -1,32 +1,55 @@
-import axios from 'axios';
+import axios from "axios";
+import api from "./api"; // nhớ api export default
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = "http://localhost:5000/api";
 
 function getHeaders() {
-    const token = localStorage.getItem('token');
-    return { Authorization: `Bearer ${token}` };
+  const token = localStorage.getItem("token");
+  return {
+    Authorization: `Bearer ${token}`,
+  };
 }
 
 export const applicationService = {
-    // CandidateManagement - lấy danh sách
-    getEmployerApplications: () =>
-        axios.get(`${API_URL}/applications/employer/list`, { headers: getHeaders() }),
+  // =========================
+  // EMPLOYER
+  // =========================
 
-    // CandidateDetail - lấy chi tiết 1 ứng viên
-    getApplicationById: (id: string | number) =>
-        axios.get(`${API_URL}/applications/employer/detail/${id}`, { headers: getHeaders() }),
+  getEmployerApplications: () =>
+    axios.get(`${API_URL}/applications/employer/list`, {
+      headers: getHeaders(),
+    }),
 
-    // Cập nhật trạng thái
-    updateStatus: (application_id: number, status: string) =>
-        axios.put(`${API_URL}/applications/update-status`, { application_id, status }, { headers: getHeaders() }),
+  getApplicationById: (id: string | number) =>
+    axios.get(`${API_URL}/applications/employer/detail/${id}`, {
+      headers: getHeaders(),
+    }),
 
-    // EmployerDashboard - lấy jobs + stats
-    getEmployerJobs: () =>
-        axios.get(`${API_URL}/applications/employer/jobs`, { headers: getHeaders() }),
-};
+  updateStatus: (application_id: number, status: string) =>
+    axios.put(
+      `${API_URL}/applications/update-status`,
+      { application_id, status },
+      { headers: getHeaders() }
+    ),
 
+  getEmployerJobs: () =>
+    axios.get(`${API_URL}/applications/employer/jobs`, {
+      headers: getHeaders(),
+    }),
 
-export const getMyApplications = async () => {
-  const response = await axios.get("/api/applications/my");
-  return response.data;
+  // =========================
+  // CANDIDATE
+  // =========================
+
+  applyJob: (jobId: number) =>
+    axios.post(
+      `${API_URL}/applications/apply`,
+      { jobId },
+      { headers: getHeaders() }
+    ),
+
+  getMyApplications: () =>
+    axios.get(`${API_URL}/applications/my`, {
+      headers: getHeaders(),
+    }),
 };

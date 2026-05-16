@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Briefcase, Bell, CheckCircle2, Eye, Calendar, LogOut, Settings, ChevronDown } from 'lucide-react';
-import { Link, useNavigate } from 'react-router'; 
+import { Link, useNavigate } from 'react-router-dom';
 
 // Import các component từ thư mục UI của shadcn
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -25,25 +25,53 @@ export const Navbar = () => {
     role: '' 
   });
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
-    
-    if (token && savedUser) {
-      setIsLoggedIn(true);
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        setUser({
-          name: parsedUser.username || 'Người dùng',
-          avatarUrl: 'https://github.com/shadcn.png',
-          role: parsedUser.role === 'candidate' ? 'Ứng viên' : 'Nhà tuyển dụng'
-        });
-      } catch (e) {
-        console.error("Lỗi đọc thông tin user:", e);
+ useEffect(() => {
+    // 1. Hàm load data từ LocalStorage
+    const loadUserData = () => {
+      const token = localStorage.getItem('token');
+      const savedUserStr = localStorage.getItem('user');
+      
+      if (token && savedUserStr) {
+        setIsLoggedIn(true);
+        try {
+          const parsedUser = JSON.parse(savedUserStr);
+          setUser({
+            // Ưu tiên full_name (từ Profile), nếu không có mới lùi về display_name hoặc username
+            name: parsedUser.full_name || parsedUser.display_name || parsedUser.username || 'Người dùng',
+            // Load luôn avatar nếu có
+            avatarUrl: parsedUser.avatar_url || 'https://github.com/shadcn.png',
+            role: parsedUser.role === 'candidate' ? 'Ứng viên' : 'Nhà tuyển dụng'
+          });
+        } catch (e) {
+          console.error("Lỗi đọc thông tin user:", e);
+        }
+      } else {
+        setIsLoggedIn(false);
       }
-    } else {
-      setIsLoggedIn(false);
-    }
+    };
+
+    // Chạy lần đầu khi load trang
+    loadUserData();
+
+    // 2. Lắng nghe sự kiện cập nhật Profile từ mọi nơi trong App (Kiểu Facebook)
+    const handleProfileUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const { full_name, avatar_url } = customEvent.detail;
+
+      setUser(prev => ({
+        ...prev,
+        // Cập nhật ngay lập tức UI trên Navbar
+        name: full_name || prev.name,
+        avatarUrl: avatar_url || prev.avatarUrl
+      }));
+    };
+
+    window.addEventListener('user-profile-updated', handleProfileUpdate);
+
+    // Cleanup listener khi unmount
+    return () => {
+      window.removeEventListener('user-profile-updated', handleProfileUpdate);
+    };
   }, []);
 
   // Đóng thông báo khi click ra ngoài
@@ -200,3 +228,5 @@ export const Navbar = () => {
     </nav>
   );
 };
+
+export default Navbar;

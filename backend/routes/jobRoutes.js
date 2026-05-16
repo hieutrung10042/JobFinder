@@ -13,4 +13,6 @@ router.delete('/delete-user/:id', verifyToken, authorizeRole(['admin']), (req, r
     res.send('Admin đã xóa người dùng');
 });
 
+router.get('/all', jobController.getAllJobs);
+router.get('/:id', jobController.getJobDetail);
 module.exports = router;

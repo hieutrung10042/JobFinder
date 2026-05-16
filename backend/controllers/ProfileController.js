@@ -292,7 +292,6 @@ exports.updateProfile = async (req, res) => {
                 personalInfo.gender       || null,
                 personalInfo.dob          || null,
                 personalInfo.location     || null,
-                formatDate(personalInfo.dob),
                 personalInfo.social_links ? JSON.stringify(personalInfo.social_links) : null,
                 userId,
             ]
@@ -457,4 +456,56 @@ exports.deleteCV = async (req, res) => {
         console.error("[deleteCV]", error.message);
         res.status(500).json({ success: false, message: error.message });
     }
+};
+// Thêm vào cuối file
+exports.uploadAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "Không có file nào" });
+    }
+
+    const userId = req.user.id;
+    const avatarUrl = `/uploads/${req.file.filename}`;
+
+    await db.query(
+      `UPDATE Profiles SET avatar_url = ? WHERE user_id = ?`,
+      [avatarUrl, userId]
+    );
+
+    res.json({
+      success: true,
+      message: "Cập nhật ảnh đại diện thành công",
+      avatar_url: avatarUrl
+    });
+
+  } catch (error) {
+    console.error("[uploadAvatar]", error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.uploadCover = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "Không có file nào" });
+    }
+
+    const userId = req.user.id;
+    const coverUrl = `/uploads/${req.file.filename}`;
+
+    await db.query(
+      `UPDATE Profiles SET cover_url = ? WHERE user_id = ?`,
+      [coverUrl, userId]
+    );
+
+    res.json({
+      success: true,
+      message: "Cập nhật ảnh bìa thành công",
+      cover_url: coverUrl
+    });
+
+  } catch (error) {
+    console.error("[uploadCover]", error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
