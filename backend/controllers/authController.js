@@ -187,6 +187,28 @@ exports.login = async (req, res) => {
   }
 };
 
+// --- Lấy thông tin cá nhân ---
+exports.getProfile = async (req, res) => {
+  try {
+    // req.user.id lấy từ Middleware verifyToken
+    const [rows] = await db.execute(
+      "SELECT id, username, email, role, avatar_url, created_at FROM Users WHERE id = ?",
+      [req.user.id],
+    );
+
+    if (rows.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy người dùng" });
+    }
+
+    res.status(200).json({ success: true, data: rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// --- Quên mật khẩu ---
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
   try {
@@ -257,14 +279,21 @@ exports.resetPassword = async (req, res) => {
     }
 
     const user = users[0];
-
-    // 2. Kiểm tra mã OTP có hết hạn chưa
     const now = new Date();
     if (now > new Date(user.otp_expires)) {
-      return res.status(400).json({ success: false, message: "Mã OTP đã hết hạn!" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Mã OTP đã hết hạn!" });
     }
 
-    // 3. Mã OTP đúng -> Băm mật khẩu mới
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Mật khẩu mới không được trùng với mật khẩu hiện tại!",
+      });
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
@@ -472,193 +501,9 @@ exports.verifyLoginOTP = async (req, res) => {
     );
 
     if (users.length === 0) {
-
-      return res.status(400).json({
-        success: false,
-        message: "OTP không đúng!",
-      });
-    }
-
-    await db.execute(
-      `
-      UPDATE Users
-      SET is_verified = 1,
-          otp_code = NULL,
-          otp_expires = NULL
-      WHERE email = ?
-      `,
-      [email]
-    );
-
-    res.status(200).json({
-      success: true,
-      message: "Xác thực thành công!",
-    });
-
-  } catch (error) {
-
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-// ================= GOOGLE LOGIN =================
-exports.googleLogin = async (req, res) => {
-
-  const { accessToken, role } = req.body;
-
-  try {
-
-    const googleResponse = await axios.get(
-      "https://www.googleapis.com/oauth2/v3/userinfo",
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
-
-    const {
-      email,
-      name,
-      picture,
-    } = googleResponse.data;
-
-    const [users] = await db.execute(
-      "SELECT * FROM Users WHERE email = ?",
-      [email]
-    );
-
-    let user = users[0];
-
-    if (!user) {
-
-      const autoUsername = email.split("@")[0];
-
-      const [result] = await db.execute(
-        `
-        INSERT INTO Users
-        (
-          username,
-          email,
-          password,
-          role,
-          is_verified,
-          avatar_url
-        )
-        VALUES (?, ?, ?, ?, ?, ?)
-        `,
-        [
-          autoUsername,
-          email,
-          "LOGIN_BY_GOOGLE",
-          role || "candidate",
-          1,
-          picture || null,
-        ]
-      );
-
-      const userId = result.insertId;
-
-      if (role === "employer") {
-
-        await db.execute(
-          "INSERT INTO Companies (name) VALUES (?)",
-          [`Công ty của ${name}`]
-        );
-
-      } else {
-
-        await db.execute(
-          `
-          INSERT INTO Profiles
-          (user_id, full_name)
-          VALUES (?, ?)
-          `,
-          [userId, name]
-        );
-      }
-
-      user = {
-        id: userId,
-        username: autoUsername,
-        email,
-        role: role || "candidate",
-        avatar_url: picture,
-      };
-
-    } else {
-
-      await db.execute(
-        `
-        UPDATE Users
-        SET avatar_url = ?, is_verified = 1
-        WHERE id = ?
-        `,
-        [picture || user.avatar_url, user.id]
-      );
-
-      user.avatar_url = picture || user.avatar_url;
-    }
-
-    const token = jwt.sign(
-      {
-        id: user.id,
-        role: user.role,
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "7d",
-      }
-    );
-
-    res.status(200).json({
-      success: true,
-      token,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        avatar_url: user.avatar_url,
-      },
-    });
-
-  } catch (error) {
-
-    console.error("Lỗi Google Login:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Lỗi kết nối Google: " + error.message,
-    });
-  }
-};
-
-// ================= ADMIN LOGIN =================
-exports.adminLogin = async (req, res) => {
-
-  const { email, password } = req.body;
-
-  try {
-
-    const [users] = await db.execute(
-      "SELECT * FROM Users WHERE email = ?",
-      [email]
-    );
-
-    if (users.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy user!",
-      });
-
       return res
         .status(400)
         .json({ success: false, message: "Mã OTP không chính xác!" });
-
     }
 
     const user = users[0];

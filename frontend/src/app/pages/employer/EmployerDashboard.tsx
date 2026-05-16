@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  Briefcase, Users, MessageSquare, Eye, Plus, MoreVertical,
-  MapPin, Clock, Loader2, XCircle, RefreshCw, Pencil, Trash2, AlertCircle
-} from 'lucide-react';
-import { Link } from 'react-router';
+import { Briefcase, Users, MessageSquare, Eye, Plus, MoreVertical, MapPin, Clock, Loader2, Pencil, Trash2, XCircle, RefreshCw, AlertCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { applicationService } from '../../../services/applicationService';
 import { Job, Stats } from '../../../types/application';
 import { timeAgo } from '../../../utils/format';

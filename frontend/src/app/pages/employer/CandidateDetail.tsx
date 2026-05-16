@@ -3,7 +3,7 @@ import {
   ArrowLeft, Mail, Phone, Calendar, XCircle, ChevronDown,
   MessageSquare, Briefcase, GraduationCap, Loader2, FileText, Download, Trash2
 } from 'lucide-react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams } from 'react-router-dom';
 import { applicationService } from '../../../services/applicationService';
 import { ApplicationDetail, ApplicationNote } from '../../../types/application';
 import { STATUS_BADGE_COLORS, STATUS_OPTIONS } from '../../../constants/status';
