@@ -1,100 +1,164 @@
-import React, { useState } from "react"
-import { 
-  CheckCircle, 
-  MapPin, 
-  DollarSign, 
-  Briefcase, 
-  GraduationCap,
-  Building2, 
-  ShieldCheck, 
-  Sparkles,
-  AlertTriangle,
-  Check
+import React, { useState, useEffect } from "react"
+import {
+  CheckCircle, MapPin, DollarSign, Briefcase, GraduationCap,
+  ShieldCheck, AlertTriangle, Check, Loader2, Building2, RefreshCw
 } from "lucide-react"
 import { toast } from "sonner"
 
-// Mock Data giữ nguyên
-const pendingJobsData = [
-  {
-    id: "JOB-4829",
-    title: "Senior React Developer",
-    company: "TechNova Inc.",
-    logo: "TN",
-    logoBg: "bg-indigo-50 text-indigo-600",
-    location: "Remote (US)",
-    salaryMin: 120000,
-    salaryMax: 160000,
-    jobType: "Full-time",
-    experience: "Senior (5+ yrs)",
-    description: "We are looking for an experienced Senior React Developer to join our core product team. You will be responsible for architecting front-end solutions, mentoring junior developers, and collaborating directly with product and design to create seamless user experiences.\n\nOur stack is primarily React, TypeScript, Next.js, and Tailwind CSS. If you love building performant, accessible, and beautiful interfaces, we want to talk to you.",
-    requirements: [
-      "5+ years of production experience with React",
-      "Deep understanding of TypeScript and modern JavaScript",
-      "Experience with state management (Zustand, Redux, or similar)",
-      "Strong background in responsive design and accessibility (WCAG)",
-      "Ability to work independently in a remote environment"
-    ]
-  },
-  {
-    id: "JOB-4830",
-    title: "Marketing Director",
-    company: "BlueSky Corp",
-    logo: "BS",
-    logoBg: "bg-sky-50 text-sky-600",
-    location: "New York, NY",
-    salaryMin: 90000,
-    salaryMax: 130000,
-    jobType: "Hybrid",
-    experience: "Director",
-    description: "BlueSky Corp is seeking a dynamic Marketing Director to lead our go-to-market strategies. The ideal candidate will have a proven track record of driving growth through innovative B2B marketing campaigns.",
-    requirements: [
-      "7+ years in B2B marketing",
-      "Experience managing a team of 5+ marketers",
-      "Proficiency in Hubspot and Salesforce",
-      "Budget management experience"
-    ]
-  },
-  {
-    id: "JOB-4831",
-    title: "Crypto Trader Remote",
-    company: "Unknown LLC",
-    logo: "UN",
-    logoBg: "bg-slate-100 text-slate-600",
-    location: "Global Remote",
-    salaryMin: 500000,
-    salaryMax: 1000000,
-    jobType: "Contract",
-    experience: "Entry Level",
-    description: "Earn massive returns working from home! We are a proprietary crypto trading firm. No experience required. We will train you to make thousands of dollars per day. \n\nNote: To get started and receive your trading workstation, a fully refundable $500 equipment deposit is required via CashApp or Bitcoin.",
-    requirements: [
-      "Willingness to learn",
-      "Personal bank account for deposits",
-      "Must be able to pay the $500 equipment fee"
-    ]
-  }
-]
+const API_URL = 'http://localhost:5000/api/admin';
 
-const QUICK_REASONS = ["Missing salary info", "Spam / Duplicate", "Inappropriate content", "Invalid application link", "Unverified"]
+function getHeaders() {
+  const token = localStorage.getItem('admin_token');
+  return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+}
+
+interface PendingJob {
+  id: number;
+  title: string;
+  description: string;
+  requirements: string;
+  job_type: string;
+  experience_level: string;
+  salary_min: number;
+  salary_max: number;
+  status: string;
+  created_at: string;
+  company_id: number;
+  company_name: string;
+  logo_url: string | null;
+  company_verified: number;
+  location_name: string;
+  category_name: string;
+  posted_by_username: string;
+  posted_by_email: string;
+}
+
+const QUICK_REASONS = [
+  "Missing salary info",
+  "Spam / Duplicate",
+  "Inappropriate content",
+  "Invalid application link",
+  "Unverified company",
+  "Suspicious salary range",
+];
+
+// Parse requirements — có thể là JSON array hoặc plain text
+function parseRequirements(raw: string): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+  } catch { }
+  return raw.split('\n').filter(Boolean);
+}
+
+// Tạo initials từ tên công ty
+function getInitials(name: string): string {
+  return name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '??';
+}
 
 export function Jobs() {
-  const [jobs, setJobs] = useState(pendingJobsData)
-  const [reason, setReason] = useState('')
+  const [jobs, setJobs] = useState<PendingJob[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [reason, setReason] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const handleAction = (action: "approve" | "reject") => {
-    const currentJob = jobs[0]
-    
-    if (action === "approve") {
-      toast.success(`Job ${currentJob.id} approved successfully.`)
-    } else {
-      toast.error(`Job ${currentJob.id} rejected. ${reason ? `Reason: ${reason}` : 'Standard Rejection'}`)
+  const fetchPendingJobs = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`${API_URL}/jobs/admin/pending`, { headers: getHeaders() });
+      const data = await res.json();
+      if (data.success) {
+        setJobs(data.data);
+      } else {
+        setError(data.message || 'Lỗi khi tải dữ liệu');
+      }
+    } catch {
+      setError('Không thể kết nối đến máy chủ');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPendingJobs();
+  }, []);
+
+  const handleAction = async (action: 'approve' | 'reject') => {
+    if (!jobs[0]) return;
+    const currentJob = jobs[0];
+
+    if (action === 'reject' && !reason.trim()) {
+      toast.warning('Vui lòng nhập lý do từ chối!');
+      return;
     }
 
-    // Xóa bài hiện tại khỏi hàng đợi và reset ô lý do
-    setJobs(jobs.slice(1))
-    setReason('')
+    setActionLoading(true);
+    try {
+      const endpoint = action === 'approve'
+        ? `${API_URL}/jobs/admin/${currentJob.id}/approve`
+        : `${API_URL}/jobs/admin/${currentJob.id}/reject`;
+
+      const res = await fetch(endpoint, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({ reason }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        if (action === 'approve') {
+          toast.success(`Job #${currentJob.id} approved successfully.`);
+        } else {
+          toast.error(`Job #${currentJob.id} rejected. ${reason ? `Reason: ${reason}` : ''}`);
+        }
+        // Xóa job đầu khỏi queue
+        setJobs(prev => {
+          const next = prev.filter((_, i) => i !== selectedIndex);
+          setSelectedIndex(0); // reset về đầu sau khi xử lý
+          return next;
+        });
+        setReason('');
+      } else {
+        toast.error(data.message || 'Có lỗi xảy ra');
+      }
+    } catch {
+      toast.error('Không thể kết nối đến máy chủ');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ── Loading state ─────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="h-full w-full flex flex-col items-center justify-center min-h-[600px] gap-3 text-slate-400">
+        <Loader2 className="w-8 h-8 animate-spin" />
+        <span className="text-sm font-medium">Đang tải hàng đợi kiểm duyệt...</span>
+      </div>
+    );
   }
 
-  // Giao diện khi hết bài để duyệt
+  // ── Error state ───────────────────────────────────────
+  if (error) {
+    return (
+      <div className="h-full w-full flex flex-col items-center justify-center min-h-[600px] gap-4">
+        <p className="text-red-500 text-sm">{error}</p>
+        <button
+          onClick={fetchPendingJobs}
+          className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors"
+        >
+          <RefreshCw className="w-4 h-4" /> Thử lại
+        </button>
+      </div>
+    );
+  }
+
+  // ── Empty queue ───────────────────────────────────────
   if (jobs.length === 0) {
     return (
       <div className="h-full w-full flex flex-col items-center justify-center bg-[#F8FAFC] animate-in fade-in duration-500 p-8 min-h-[600px]">
@@ -102,130 +166,175 @@ export function Jobs() {
           <CheckCircle className="w-12 h-12 text-emerald-500" />
         </div>
         <h2 className="text-3xl font-black text-slate-800 mb-2 tracking-tight">Review Queue Empty</h2>
-        <p className="text-slate-500 text-center font-medium max-w-sm">
+        <p className="text-slate-500 text-center font-medium max-w-sm mb-6">
           You've successfully processed all pending job applications. Great work!
         </p>
+        <button
+          onClick={fetchPendingJobs}
+          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors"
+        >
+          <RefreshCw className="w-4 h-4" /> Refresh Queue
+        </button>
       </div>
-    )
+    );
   }
 
-  const job = jobs[0] // Lấy bài đầu tiên trong hàng đợi
+  const job = jobs[selectedIndex];
+  const requirements = parseRequirements(job.requirements);
+  const initials = getInitials(job.company_name);
 
   return (
     <div className="p-6 md:p-8 bg-[#F8FAFC] min-h-screen">
-      {/* Header trạng thái Queue */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-8 max-w-7xl mx-auto">
         <div>
           <h1 className="text-2xl font-black text-gray-900">Moderation Queue</h1>
-          <p className="text-sm font-medium text-gray-500 mt-1">Reviewing job ID: {job.id}</p>
+          <p className="text-sm font-medium text-gray-500 mt-1">
+            Reviewing job ID: <span className="font-bold text-blue-600">#{job.id}</span>
+            {' · '}{job.posted_by_email}
+          </p>
         </div>
-        <span className="bg-blue-100 text-blue-700 text-sm font-bold px-4 py-2 rounded-xl">
-          {jobs.length} Pending
-        </span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={fetchPendingJobs}
+            className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+            title="Refresh"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+          <span className="bg-blue-100 text-blue-700 text-sm font-bold px-4 py-2 rounded-xl">
+            {jobs.length} Pending
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-        {/* Cột Trái: Chi tiết công việc */}
+
+        {/* Cột Trái: Chi tiết job */}
         <div className="lg:col-span-2 bg-white rounded-[32px] shadow-sm border border-gray-100 p-8 md:p-10 flex flex-col animate-in slide-in-from-right-8 duration-500 fade-in">
+
+          {/* Header job */}
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6 border-b border-gray-50 pb-8 mb-8">
             <div className="flex gap-6 items-start">
-              <div className={`w-20 h-20 rounded-2xl border border-gray-100 flex items-center justify-center flex-shrink-0 shadow-sm text-2xl font-black ${job.logoBg}`}>
-                {job.logo}
+              {/* Logo / initials */}
+              <div className="w-20 h-20 rounded-2xl border border-gray-100 flex items-center justify-center flex-shrink-0 shadow-sm bg-indigo-50 text-indigo-600 text-2xl font-black">
+                {job.logo_url
+                  ? <img src={job.logo_url} alt={job.company_name} className="w-full h-full object-cover rounded-2xl" />
+                  : initials
+                }
               </div>
               <div>
-                <div className="flex flex-wrap items-center gap-3 mb-3">
+                <div className="flex flex-wrap items-center gap-2 mb-3">
                   <span className="bg-blue-50 text-blue-600 text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-lg">
                     New Submission
                   </span>
                   <span className="bg-green-50 text-green-600 text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-lg flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3" /> Pending Review
                   </span>
+                  {job.company_verified === 1 && (
+                    <span className="bg-emerald-50 text-emerald-600 text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-lg flex items-center gap-1">
+                      <Building2 className="w-3 h-3" /> Verified Company
+                    </span>
+                  )}
                 </div>
                 <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-2">{job.title}</h2>
-                <p className="text-lg font-bold text-gray-500">{job.company}</p>
+                <p className="text-lg font-bold text-gray-500">{job.company_name}</p>
+                <p className="text-xs text-gray-400 mt-1">{job.category_name}</p>
               </div>
             </div>
           </div>
 
-          {/* Dải thông tin Metadata */}
+          {/* Metadata grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
             <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
               <MapPin className="w-5 h-5 text-gray-400 mb-2" />
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Location</p>
-              <p className="text-sm font-bold text-gray-900">{job.location}</p>
+              <p className="text-sm font-bold text-gray-900">{job.location_name}</p>
             </div>
             <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
               <DollarSign className="w-5 h-5 text-gray-400 mb-2" />
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Salary Range</p>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Salary</p>
               <p className="text-sm font-bold text-gray-900">
-                ${(job.salaryMin / 1000).toFixed(0)}k - ${(job.salaryMax / 1000).toFixed(0)}k
+                {job.salary_min && job.salary_max
+                  ? `${(job.salary_min / 1_000_000).toFixed(0)}M – ${(job.salary_max / 1_000_000).toFixed(0)}M`
+                  : 'Thỏa thuận'
+                }
               </p>
             </div>
             <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
               <Briefcase className="w-5 h-5 text-gray-400 mb-2" />
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Job Type</p>
-              <p className="text-sm font-bold text-gray-900">{job.jobType}</p>
+              <p className="text-sm font-bold text-gray-900 capitalize">{job.job_type}</p>
             </div>
             <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
               <GraduationCap className="w-5 h-5 text-gray-400 mb-2" />
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Experience</p>
-              <p className="text-sm font-bold text-gray-900">{job.experience}</p>
+              <p className="text-sm font-bold text-gray-900 capitalize">{job.experience_level || 'N/A'}</p>
             </div>
           </div>
 
+          {/* Description + Requirements */}
           <div className="space-y-10 flex-1">
-            {/* Mô tả công việc */}
             <div>
-              <h4 className="text-[13px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+              <h4 className="text-[13px] font-black text-gray-400 uppercase tracking-widest mb-4">
                 Job Description
               </h4>
-              <div className="prose prose-sm text-gray-600 font-medium leading-relaxed max-w-none whitespace-pre-wrap">
+              <div className="text-gray-600 font-medium leading-relaxed whitespace-pre-wrap text-sm">
                 {job.description}
               </div>
             </div>
 
-            {/* Yêu cầu */}
-            <div>
-              <h4 className="text-[13px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                Key Requirements
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {job.requirements.map((req, idx) => (
-                  <div key={idx} className="flex items-start gap-3 bg-white border border-gray-100 p-4 rounded-xl shadow-sm">
-                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <span className="text-sm font-bold text-gray-700">{req}</span>
-                  </div>
-                ))}
+            {requirements.length > 0 && (
+              <div>
+                <h4 className="text-[13px] font-black text-gray-400 uppercase tracking-widest mb-4">
+                  Key Requirements
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {requirements.map((req, idx) => (
+                    <div key={idx} className="flex items-start gap-3 bg-white border border-gray-100 p-4 rounded-xl shadow-sm">
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                      <span className="text-sm font-bold text-gray-700">{req}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
-        {/* Cột Phải: Bảng điều khiển (Dark Mode) */}
+        {/* Cột Phải: Action panel */}
         <div className="bg-[#0A0A0B] rounded-[32px] shadow-2xl p-8 lg:p-10 text-white flex flex-col relative overflow-hidden h-fit sticky top-8 animate-in slide-in-from-bottom-8 duration-500 fade-in">
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full opacity-20 blur-[80px] pointer-events-none"></div>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-rose-600 rounded-full opacity-10 blur-[80px] pointer-events-none"></div>
-          
+
           <div className="relative z-10 flex-1 flex flex-col">
             <div className="mb-8">
               <h3 className="text-2xl font-black mb-2">Moderation Action</h3>
               <p className="text-gray-400 text-sm font-medium">Review carefully before publishing to the live platform.</p>
             </div>
-            
+
+            {/* Submitted by */}
+            <div className="mb-6 p-4 bg-gray-800/50 border border-gray-700 rounded-2xl">
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500 mb-2">Submitted by</p>
+              <p className="text-sm font-bold text-white">{job.posted_by_username}</p>
+              <p className="text-xs text-gray-400">{job.posted_by_email}</p>
+            </div>
+
             <div className="flex-1 flex flex-col gap-6">
-              {/* Nút từ chối nhanh */}
+              {/* Quick rejection chips */}
               <div className="flex flex-col gap-3">
-                <label className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500">Quick Rejection Notes</label>
+                <label className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500">
+                  Quick Rejection Notes
+                </label>
                 <div className="flex flex-wrap gap-2">
                   {QUICK_REASONS.map((chip, idx) => (
-                    <button 
+                    <button
                       key={idx}
                       onClick={() => setReason(chip)}
-                      className={`px-3 py-1.5 border rounded-lg text-xs font-bold transition-colors ${
-                        reason === chip 
-                          ? 'bg-blue-600 border-blue-500 text-white' 
-                          : 'bg-gray-800 hover:bg-gray-700 border-gray-700 text-gray-300'
-                      }`}
+                      className={`px-3 py-1.5 border rounded-lg text-xs font-bold transition-colors ${reason === chip
+                        ? 'bg-blue-600 border-blue-500 text-white'
+                        : 'bg-gray-800 hover:bg-gray-700 border-gray-700 text-gray-300'
+                        }`}
                     >
                       {chip}
                     </button>
@@ -233,40 +342,77 @@ export function Jobs() {
                 </div>
               </div>
 
-              {/* Ô nhập lý do chi tiết */}
-              <div className="flex-1 min-h-[150px] flex flex-col">
+              {/* Reason textarea */}
+              <div className="flex-1 min-h-[120px] flex flex-col">
                 <label className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500 mb-3">
                   Reason Details
                 </label>
-                <textarea 
+                <textarea
                   value={reason}
-                  onChange={(e) => setReason(e.target.value)}
+                  onChange={e => setReason(e.target.value)}
                   className="w-full flex-1 p-5 bg-gray-800/50 border border-gray-700 rounded-2xl text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none"
                   placeholder="Add specific notes or context here..."
-                ></textarea>
+                  rows={4}
+                />
               </div>
-              
-              {/* Nút hành động chính */}
+
+              {/* Action buttons */}
               <div className="flex flex-col gap-4 pt-4 border-t border-gray-800">
-                <button 
-                  onClick={() => handleAction("approve")}
-                  className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white text-sm font-black rounded-2xl transition-all shadow-lg shadow-blue-900/50 flex items-center justify-center gap-2"
+                <button
+                  onClick={() => handleAction('approve')}
+                  disabled={actionLoading}
+                  className="w-full py-4 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-black rounded-2xl transition-all shadow-lg shadow-blue-900/50 flex items-center justify-center gap-2"
                 >
-                  <Check className="w-5 h-5" /> Approve & Publish
+                  {actionLoading
+                    ? <Loader2 className="w-5 h-5 animate-spin" />
+                    : <Check className="w-5 h-5" />
+                  }
+                  Approve & Publish
                 </button>
-                
-                <button 
-                  onClick={() => handleAction("reject")}
-                  className="w-full py-4 bg-transparent hover:bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-black rounded-2xl transition-all flex items-center justify-center gap-2"
+
+                <button
+                  onClick={() => handleAction('reject')}
+                  disabled={actionLoading}
+                  className="w-full py-4 bg-transparent hover:bg-red-500/10 disabled:opacity-50 border border-red-500/20 text-red-500 text-sm font-black rounded-2xl transition-all flex items-center justify-center gap-2"
                 >
-                  <AlertTriangle className="w-5 h-5" /> Reject Posting
+                  {actionLoading
+                    ? <Loader2 className="w-5 h-5 animate-spin" />
+                    : <AlertTriangle className="w-5 h-5" />
+                  }
+                  Reject Posting
                 </button>
               </div>
+
+              {/* Queue preview */}
+              {jobs.length > 1 && (
+                <div className="pt-4 border-t border-gray-800">
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500 mb-3">Up Next</p>
+                  <div className="space-y-2">
+                    {jobs.map((nextJob, idx) => idx !== selectedIndex && (
+                      <button
+                        key={nextJob.id}
+                        onClick={() => { setSelectedIndex(idx); setReason(''); }}
+                        className="w-full flex items-center gap-3 p-3 bg-gray-800/50 hover:bg-gray-700/50 rounded-xl border border-gray-700 transition-colors text-left"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center text-xs font-black text-gray-300 flex-shrink-0">
+                          {getInitials(nextJob.company_name)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-white truncate">{nextJob.title}</p>
+                          <p className="text-[11px] text-gray-400 truncate">{nextJob.company_name}</p>
+                        </div>
+                      </button>
+                    )).filter(Boolean)}
+                    {jobs.length > 3 && (
+                      <p className="text-xs text-gray-500 text-center pt-1">+{jobs.length - 3} more in queue</p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
-
       </div>
     </div>
-  )
+  );
 }

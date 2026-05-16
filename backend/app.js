@@ -24,7 +24,7 @@ app.use(cors({
 
 
 // --- QUAN TRỌNG: SỬA Ở ĐÂY ĐỂ HẾT LỖI PAYLOAD TOO LARGE ---
-app.use(express.json({ limit: '50mb' })); 
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // -------------------------------------------------------
 
@@ -62,6 +62,10 @@ app.use((err, req, res, next) => {
 
 // THÊM DÒNG NÀY CHO ADMIN:
 app.use('/api/admin', require('./routes/admin/adminRoutes'));
+app.use('/api/admin/users', require('./routes/admin/Userroutes'));
+app.use('/api/admin/jobs', require('./routes/admin/adminJobRoutes'));
+app.use('/api/admin/metadata', require('./routes/admin/metadataRoutes'));
+app.use('/api/admin/reports', require('./routes/admin/reportRoutes'));
 // 2. Import Routes (Sau này bạn sẽ import authRoutes, jobRoutes vào đây)
 // const authRoutes = require('./routes/authRoutes');
 // app.use('/api/auth', authRoutes);

@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react"
 import { Users, BriefcaseBusiness, AlertCircle, Building2 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/Card"
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, 
-  Tooltip as RechartsTooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell, Sector 
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip as RechartsTooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Sector
 } from "recharts"
 
 // Hàm render cho hiệu ứng khi hover vào miếng bánh (Pie Chart)
@@ -50,15 +50,15 @@ export function Dashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/admin/dashboard'); 
+        const response = await fetch('http://localhost:5000/api/admin/dashboard');
         const result = await response.json();
 
         if (result.success) {
           setStats(result.data.stats);
-          
+
           const rawData = result.data.categoryData;
           let processedData = [];
-          
+
           if (rawData.length > 6) {
             const sortedData = [...rawData].sort((a, b) => b.value - a.value);
             processedData = sortedData.slice(0, 5);
@@ -105,31 +105,31 @@ export function Dashboard() {
 
       {/* Stats Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard 
-          title="Total Candidates" 
-          value={stats.totalCandidates} 
-          icon={<Users className="w-4 h-4 text-slate-400" />} 
+        <StatCard
+          title="Total Candidates"
+          value={stats.totalCandidates}
+          icon={<Users className="w-4 h-4 text-slate-400" />}
           subText="Real-time update"
           subColor="text-emerald-600"
         />
-        <StatCard 
-          title="Verified Companies" 
-          value={stats.verifiedCompanies} 
-          icon={<Building2 className="w-4 h-4 text-slate-400" />} 
+        <StatCard
+          title="Verified Companies"
+          value={stats.verifiedCompanies}
+          icon={<Building2 className="w-4 h-4 text-slate-400" />}
           subText="Active partners"
           subColor="text-emerald-600"
         />
-        <StatCard 
-          title="Pending Jobs" 
-          value={stats.pendingJobs} 
-          icon={<BriefcaseBusiness className="w-4 h-4 text-amber-500" />} 
+        <StatCard
+          title="Pending Jobs"
+          value={stats.pendingJobs}
+          icon={<BriefcaseBusiness className="w-4 h-4 text-amber-500" />}
           subText="Requires moderation"
           subColor="text-amber-600"
         />
-        <StatCard 
-          title="Active Reports" 
-          value={stats.activeReports} 
-          icon={<AlertCircle className="w-4 h-4 text-rose-500" />} 
+        <StatCard
+          title="Active Reports"
+          value={stats.activeReports}
+          icon={<AlertCircle className="w-4 h-4 text-rose-500" />}
           subText="Needs immediate action"
           subColor="text-rose-600"
         />
@@ -146,27 +146,27 @@ export function Dashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trendsData} margin={{ top: 20, right: 30, left: 10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#94A3B8', fontSize: 12 }} 
-                  dy={10} 
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#94A3B8', fontSize: 12 }}
+                  dy={10}
                 />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#94A3B8', fontSize: 12 }} 
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#94A3B8', fontSize: 12 }}
                 />
-                <RechartsTooltip 
+                <RechartsTooltip
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="postings" 
-                  stroke="#4F46E5" 
-                  strokeWidth={3} 
-                  dot={{ r: 5, fill: '#4F46E5', strokeWidth: 2, stroke: '#fff' }} 
+                <Line
+                  type="monotone"
+                  dataKey="postings"
+                  stroke="#4F46E5"
+                  strokeWidth={3}
+                  dot={{ r: 5, fill: '#4F46E5', strokeWidth: 2, stroke: '#fff' }}
                   activeDot={{ r: 8, strokeWidth: 0 }}
                   animationDuration={1500}
                 />
@@ -200,30 +200,30 @@ export function Dashboard() {
                       animationDuration={1200}
                     >
                       {categoryData.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={entry.color} 
-                          stroke="rgba(255,255,255,0.8)" 
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={entry.color}
+                          stroke="rgba(255,255,255,0.8)"
                           strokeWidth={2}
                           className="outline-none"
                         />
                       ))}
                     </Pie>
-                    <RechartsTooltip 
+                    <RechartsTooltip
                       formatter={(value: number, name: string) => [
-                        <span className="font-bold text-slate-900">{value} tin</span>, 
+                        <span className="font-bold text-slate-900">{value} tin</span>,
                         <span className="text-slate-500">{name}</span>
                       ]}
                       contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
-                
+
                 {/* Custom Legend */}
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-4 w-full px-4">
                   {categoryData.map((category, index) => (
-                    <div 
-                      key={category.name} 
+                    <div
+                      key={category.name}
                       className={`flex items-center text-xs transition-opacity duration-200 ${activeIndex !== -1 && activeIndex !== index ? 'opacity-40' : 'opacity-100'}`}
                     >
                       <div className="w-2.5 h-2.5 rounded-full mr-2 shrink-0" style={{ backgroundColor: category.color }} />
