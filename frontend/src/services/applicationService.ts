@@ -23,4 +23,19 @@ export const applicationService = {
     // EmployerDashboard - lấy jobs + stats
     getEmployerJobs: () =>
         axios.get(`${API_URL}/applications/employer/jobs`, { headers: getHeaders() }),
+    // Thêm vào object applicationService:
+
+    // Notes
+    getNotes: (application_id: number) =>
+        axios.get(`${API_URL}/applications/notes/${application_id}`, { headers: getHeaders() }),
+
+    addNote: (application_id: number, content: string) =>
+        axios.post(`${API_URL}/applications/notes`, { application_id, content }, { headers: getHeaders() }),
+
+    deleteNote: (note_id: number) =>
+        axios.delete(`${API_URL}/applications/notes/${note_id}`, { headers: getHeaders() }),
+
+    // Toggle job status
+    toggleJobStatus: (job_id: number) =>
+        axios.put(`${API_URL}/applications/jobs/toggle-status`, { job_id }, { headers: getHeaders() }),
 };

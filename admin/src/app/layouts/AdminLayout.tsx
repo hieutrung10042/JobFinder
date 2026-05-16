@@ -16,11 +16,10 @@ import { cn } from "../../lib/utils"
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Users & Companies", href: "/users", icon: Users },
-  { name: "Job Moderation", href: "/jobs", icon: BriefcaseBusiness },
+  { name: "Jobs", href: "/jobs/management", icon: BriefcaseBusiness }, // Trả lại 1 menu duy nhất cho gọn
   { name: "Metadata", href: "/metadata", icon: Tags },
   { name: "Resolution Center", href: "/reports", icon: AlertTriangle },
 ]
-
 // Khai báo kiểu dữ liệu cho User - Bổ sung thêm avatar_url
 interface UserProfile {
   id: number;

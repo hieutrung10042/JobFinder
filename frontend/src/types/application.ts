@@ -53,3 +53,11 @@ export interface Stats {
     total_jobs: number;
     total_applications: number;
 }
+
+export interface ApplicationNote {
+    id: number;
+    content: string;
+    created_at: string;
+    display_name: string | null;
+    username: string;
+}

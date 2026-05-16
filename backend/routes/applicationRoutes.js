@@ -26,4 +26,12 @@ router.put('/update-status', verifyToken, authorizeRole(['employer']), applicati
 // Employer xem danh sách jobs + stats (EmployerDashboard)
 router.get('/employer/jobs', verifyToken, authorizeRole(['employer']), applicationController.getEmployerJobs);
 
+// Notes
+router.get('/notes/:application_id', verifyToken, authorizeRole(['employer']), applicationController.getNotes);
+router.post('/notes', verifyToken, authorizeRole(['employer']), applicationController.addNote);
+router.delete('/notes/:note_id', verifyToken, authorizeRole(['employer']), applicationController.deleteNote);
+
+// Toggle job status (đóng/mở)
+router.put('/jobs/toggle-status', verifyToken, authorizeRole(['employer']), applicationController.toggleJobStatus);
+
 module.exports = router;
