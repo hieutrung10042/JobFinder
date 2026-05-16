@@ -265,3 +265,108 @@ exports.getMyApplications = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+// Lấy danh sách ghi chú của 1 đơn ứng tuyển
+exports.getNotes = async (req, res) => {
+    const { application_id } = req.params;
+    try {
+        const [rows] = await db.execute(`
+            SELECT 
+                n.id, n.content, n.created_at,
+                u.username
+            FROM Application_Notes n
+            JOIN Users u ON n.author_id = u.id
+            WHERE n.application_id = ?
+            ORDER BY n.created_at ASC
+        `, [application_id]);
+
+        res.status(200).json({ success: true, data: rows });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Thêm ghi chú mới
+exports.addNote = async (req, res) => {
+    const { application_id, content } = req.body;
+    const author_id = req.user.id;
+
+    if (!content?.trim()) {
+        return res.status(400).json({ success: false, message: "Nội dung ghi chú không được trống" });
+    }
+
+    try {
+        const [result] = await db.execute(
+            'INSERT INTO Application_Notes (application_id, author_id, content) VALUES (?, ?, ?)',
+            [application_id, author_id, content.trim()]
+        );
+
+        // Trả về note vừa tạo kèm thông tin author
+        const [newNote] = await db.execute(`
+            SELECT n.id, n.content, n.created_at, u.username
+            FROM Application_Notes n
+            JOIN Users u ON n.author_id = u.id
+            WHERE n.id = ?
+        `, [result.insertId]);
+
+        res.status(201).json({ success: true, data: newNote[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Xóa ghi chú
+exports.deleteNote = async (req, res) => {
+    const { note_id } = req.params;
+    const author_id = req.user.id;
+
+    try {
+        // Chỉ cho phép xóa note của chính mình
+        const [result] = await db.execute(
+            'DELETE FROM Application_Notes WHERE id = ? AND author_id = ?',
+            [note_id, author_id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(403).json({ success: false, message: "Không có quyền xóa ghi chú này" });
+        }
+
+        res.status(200).json({ success: true, message: "Đã xóa ghi chú" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Đóng / Mở lại Job (toggle status: approved <-> closed)
+exports.toggleJobStatus = async (req, res) => {
+    const { job_id } = req.body;
+    const employer_id = req.user.id;
+
+    try {
+        // Kiểm tra job có thuộc về employer này không
+        const [jobs] = await db.execute(
+            'SELECT id, status FROM Jobs WHERE id = ? AND posted_by = ?',
+            [job_id, employer_id]
+        );
+
+        if (jobs.length === 0) {
+            return res.status(404).json({ success: false, message: "Không tìm thấy tin tuyển dụng" });
+        }
+
+        const currentStatus = jobs[0].status;
+        const newStatus = currentStatus === 'closed' ? 'approved' : 'closed';
+
+        await db.execute(
+            'UPDATE Jobs SET status = ? WHERE id = ?',
+            [newStatus, job_id]
+        );
+
+        res.status(200).json({
+            success: true,
+            message: newStatus === 'closed' ? 'Đã đóng tin tuyển dụng' : 'Đã mở lại tin tuyển dụng',
+            new_status: newStatus
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

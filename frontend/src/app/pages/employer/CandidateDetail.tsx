@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ArrowLeft, Mail, Phone, Calendar, XCircle, ChevronDown,
-  MessageSquare, Briefcase, GraduationCap, Loader2, FileText, Download
+  MessageSquare, Briefcase, GraduationCap, Loader2, FileText, Download, Trash2
 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { applicationService } from '../../../services/applicationService';
-import { ApplicationDetail, Note } from '../../../types/application';
+import { ApplicationDetail, ApplicationNote } from '../../../types/application';
 import { STATUS_BADGE_COLORS, STATUS_OPTIONS } from '../../../constants/status';
 import { getInitials, formatDate, formatDateVN } from '../../../utils/format';
 
@@ -17,8 +17,12 @@ export default function CandidateDetail() {
   const [status, setStatus] = useState('');
   const [updating, setUpdating] = useState(false);
   const [noteInput, setNoteInput] = useState('');
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [notes, setNotes] = useState<ApplicationNote[]>([]);
+  const [loadingNotes, setLoadingNotes] = useState(false);
+  const [deletingNoteId, setDeletingNoteId] = useState<number | null>(null);
+  const [submittingNote, setSubmittingNote] = useState(false);
 
+  // Load application detail
   useEffect(() => {
     applicationService.getApplicationById(id!)
       .then(res => {
@@ -27,6 +31,16 @@ export default function CandidateDetail() {
       })
       .catch(err => setError(err.response?.data?.message || 'Lỗi khi tải dữ liệu'))
       .finally(() => setLoading(false));
+  }, [id]);
+
+  // Load notes từ DB
+  useEffect(() => {
+    if (!id) return;
+    setLoadingNotes(true);
+    applicationService.getNotes(Number(id))
+      .then(res => setNotes(res.data.data))
+      .catch(() => { })
+      .finally(() => setLoadingNotes(false));
   }, [id]);
 
   const handleStatusChange = async (newStatus: string) => {
@@ -41,10 +55,37 @@ export default function CandidateDetail() {
     }
   };
 
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
     if (!noteInput.trim()) return;
-    setNotes(prev => [...prev, { id: Date.now(), author: 'Bạn', date: 'Vừa xong', text: noteInput }]);
-    setNoteInput('');
+    setSubmittingNote(true);
+    try {
+      const res = await applicationService.addNote(Number(id), noteInput.trim());
+      setNotes(prev => [...prev, res.data.data]);
+      setNoteInput('');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Lỗi khi thêm ghi chú');
+    } finally {
+      setSubmittingNote(false);
+    }
+  };
+
+  const handleDeleteNote = async (note_id: number) => {
+    setDeletingNoteId(note_id);
+    try {
+      await applicationService.deleteNote(note_id);
+      setNotes(prev => prev.filter(n => n.id !== note_id));
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Lỗi khi xóa ghi chú');
+    } finally {
+      setDeletingNoteId(null);
+    }
+  };
+
+  // Gửi note bằng Ctrl+Enter
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      handleAddNote();
+    }
   };
 
   if (loading) return (
@@ -107,15 +148,18 @@ export default function CandidateDetail() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => handleStatusChange('rejected')}
-                className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+                disabled={updating}
+                className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50"
               >
                 <XCircle className="w-4 h-4 text-red-500" /> Từ chối
               </button>
               <button
                 onClick={() => handleStatusChange('accepted')}
-                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
+                disabled={updating}
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
               >
-                <Calendar className="w-4 h-4" /> Chấp nhận
+                {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
+                Chấp nhận
               </button>
             </div>
             <div className="relative w-full">
@@ -236,55 +280,96 @@ export default function CandidateDetail() {
                 <select
                   value={status}
                   onChange={e => handleStatusChange(e.target.value)}
-                  className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-3 pl-4 pr-10 rounded-xl font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                  disabled={updating}
+                  className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-3 pl-4 pr-10 rounded-xl font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer disabled:opacity-50"
                 >
                   {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
                 <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
               </div>
-              <button onClick={() => handleStatusChange('accepted')} className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-sm">
-                <Calendar className="w-5 h-5" /> Chấp nhận
+              <button
+                onClick={() => handleStatusChange('accepted')}
+                disabled={updating}
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
+              >
+                {updating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Calendar className="w-5 h-5" />}
+                Chấp nhận
               </button>
-              <button onClick={() => handleStatusChange('rejected')} className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors shadow-sm">
+              <button
+                onClick={() => handleStatusChange('rejected')}
+                disabled={updating}
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50"
+              >
                 <XCircle className="w-5 h-5 text-red-500" /> Từ chối
               </button>
             </div>
 
-            {/* Notes */}
+            {/* Notes — lưu vĩnh viễn vào DB */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm flex flex-col h-[500px]">
               <div className="p-4 sm:p-5 border-b border-gray-100 bg-gray-50 rounded-t-2xl flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-gray-500" />
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Ghi chú nội bộ</h3>
+                {notes.length > 0 && (
+                  <span className="ml-auto bg-gray-200 text-gray-600 text-xs font-bold px-2 py-0.5 rounded-full">
+                    {notes.length}
+                  </span>
+                )}
               </div>
 
+              {/* Danh sách notes */}
               <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-gray-50/50">
-                {notes.length === 0 ? (
+                {loadingNotes ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                  </div>
+                ) : notes.length === 0 ? (
                   <p className="text-center text-gray-400 text-sm py-8">Chưa có ghi chú nào</p>
                 ) : notes.map(note => (
-                  <div key={note.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                  <div key={note.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm group">
                     <div className="flex justify-between items-center mb-2">
-                      <span className="font-bold text-sm text-gray-900">{note.author}</span>
-                      <span className="text-xs text-gray-500">{note.date}</span>
+                      <span className="font-bold text-sm text-gray-900">
+                        {note.display_name || note.username}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">{formatDateVN(note.created_at)}</span>
+                        <button
+                          onClick={() => handleDeleteNote(note.id)}
+                          disabled={deletingNoteId === note.id}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 rounded transition-all disabled:opacity-50"
+                          title="Xóa ghi chú"
+                        >
+                          {deletingNoteId === note.id
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <Trash2 className="w-3.5 h-3.5" />
+                          }
+                        </button>
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-600 leading-relaxed">{note.text}</p>
+                    <p className="text-sm text-gray-600 leading-relaxed">{note.content}</p>
                   </div>
                 ))}
               </div>
 
+              {/* Input thêm note */}
               <div className="p-4 sm:p-5 border-t border-gray-100 bg-white rounded-b-2xl">
                 <div className="relative">
                   <textarea
                     value={noteInput}
                     onChange={e => setNoteInput(e.target.value)}
-                    placeholder="Thêm ghi chú cho nhóm..."
+                    onKeyDown={handleKeyDown}
+                    placeholder="Thêm ghi chú cho nhóm... (Ctrl+Enter để gửi)"
                     rows={3}
                     className="w-full p-3 pr-12 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm text-gray-900 placeholder-gray-400"
                   />
                   <button
                     onClick={handleAddNote}
-                    className="absolute bottom-3 right-3 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    disabled={submittingNote || !noteInput.trim()}
+                    className="absolute bottom-3 right-3 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    <MessageSquare className="w-4 h-4" />
+                    {submittingNote
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : <MessageSquare className="w-4 h-4" />
+                    }
                   </button>
                 </div>
               </div>

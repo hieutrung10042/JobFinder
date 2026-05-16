@@ -1,5 +1,5 @@
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
-import App from "./App"; 
+import App from "./App";
 import Home from "./pages/public/Home";
 import JobDetail from "./pages/public/JobDetail";
 import Auth from "./pages/auth/Auth";
@@ -16,7 +16,7 @@ import ErrorPage from "./pages/shared/ErrorPage";
 // --- PROTECTED ROUTE ---
 const ProtectedRoute = ({ allowedRole }: { allowedRole: string }) => {
   const userStr = localStorage.getItem('user');
-  
+
   if (!userStr) {
     // Nếu chưa đăng nhập, đá về trang auth
     return <Navigate to="/auth" replace />;
@@ -24,7 +24,7 @@ const ProtectedRoute = ({ allowedRole }: { allowedRole: string }) => {
 
   try {
     const user = JSON.parse(userStr);
-    
+
     // Kiểm tra kỹ giá trị role. Lưu ý: 'candidate' !== 'Candidate'
     // Ép kiểu về lowercase để so sánh cho chắc chắn
     if (user.role?.toLowerCase() !== allowedRole.toLowerCase()) {
@@ -47,10 +47,10 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Home /> },
       { path: "auth", element: <Auth /> },
-      { 
+      {
         // Đảm bảo route chi tiết công việc nằm ở đây
-        path: "job/:id", 
-        element: <JobDetail /> 
+        path: "job/:id",
+        element: <JobDetail />
       },
       
       // --- ROUTES CHO ỨNG VIÊN (CANDIDATE) ---

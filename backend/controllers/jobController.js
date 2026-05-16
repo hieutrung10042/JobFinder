@@ -2,9 +2,9 @@ const db = require('../config/db');
 
 // 1. API Đăng tin tuyển dụng
 exports.createJob = async (req, res) => {
-    const { 
-        title, category_id, location_id, company_id, 
-        job_type, salary_range, experience_level, description 
+    const {
+        title, category_id, location_id, company_id,
+        job_type, salary_range, experience_level, description
     } = req.body;
 
     try {
@@ -16,10 +16,10 @@ exports.createJob = async (req, res) => {
             [title, category_id, location_id, company_id, job_type, salary_range, experience_level, description]
         );
 
-        res.status(201).json({ 
-            success: true, 
+        res.status(201).json({
+            success: true,
             message: "Tin tuyển dụng đã được gửi và chờ kiểm duyệt!",
-            jobId: result.insertId 
+            jobId: result.insertId
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
