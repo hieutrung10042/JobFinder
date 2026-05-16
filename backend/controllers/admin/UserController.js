@@ -2,7 +2,9 @@ const db = require('../../config/db');
 
 // ================= LẤY DANH SÁCH USERS =================
 exports.getUsers = async (req, res) => {
-    const { role, status, search, page = 1, limit = 10 } = req.query;
+    const { role, status, search } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
 
     try {
@@ -29,7 +31,6 @@ exports.getUsers = async (req, res) => {
 
         const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
 
-        // Query lấy data
         const [rows] = await db.execute(`
             SELECT
                 u.id,
@@ -47,8 +48,8 @@ exports.getUsers = async (req, res) => {
             LEFT JOIN Companies c ON u.company_id = c.id
             ${whereClause}
             ORDER BY u.created_at DESC
-            LIMIT ? OFFSET ?
-        `, [...params, Number(limit), Number(offset)]);
+            LIMIT ${Number(limit)} OFFSET ${Number(offset)} 
+        `, params);
 
         // Query đếm tổng
         const [countResult] = await db.execute(`
