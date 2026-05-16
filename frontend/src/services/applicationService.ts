@@ -24,3 +24,9 @@ export const applicationService = {
     getEmployerJobs: () =>
         axios.get(`${API_URL}/applications/employer/jobs`, { headers: getHeaders() }),
 };
+
+
+export const getMyApplications = async () => {
+  const response = await axios.get("/api/applications/my");
+  return response.data;
+};

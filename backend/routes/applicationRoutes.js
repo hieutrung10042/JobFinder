@@ -19,3 +19,10 @@ router.put('/update-status', verifyToken, authorizeRole(['employer']), applicati
 router.get('/employer/jobs', verifyToken, authorizeRole(['employer']), applicationController.getEmployerJobs);
 
 module.exports = router;
+
+router.get(
+  '/my',
+  verifyToken,
+  authorizeRole(['candidate']),
+  applicationController.getMyApplications
+);

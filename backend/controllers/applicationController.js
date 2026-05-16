@@ -195,3 +195,33 @@ exports.getEmployerJobs = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+exports.getMyApplications = async (req, res) => {
+    const candidate_id = req.user.id;
+
+    try {
+        const [rows] = await db.execute(`
+            SELECT
+                a.id            AS application_id,
+                a.status,
+                a.cover_letter,
+                a.cv_snapshot_url,
+                a.applied_at,
+                j.id            AS job_id,
+                j.title         AS job_title,
+                j.job_type,
+                c.name          AS company_name,
+                c.logo_url,
+                l.name          AS location
+            FROM Applications a
+            JOIN Jobs          j ON a.job_id       = j.id
+            LEFT JOIN Companies c ON j.company_id  = c.id
+            LEFT JOIN Locations l ON j.location_id = l.id
+            WHERE a.candidate_id = ?
+            ORDER BY a.applied_at DESC
+        `, [candidate_id]);
+
+        res.status(200).json({ success: true, data: rows });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
