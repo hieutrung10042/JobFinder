@@ -6,6 +6,7 @@ import { Users } from "./pages/admin/Users"
 import { Jobs } from "./pages/admin/Jobs"
 import { Metadata } from "./pages/admin/Metadata"
 import { Reports } from "./pages/admin/Reports"
+import { JobManagement } from "./pages/admin/JobManagement"
 
 export const router = createBrowserRouter([
   {
@@ -18,7 +19,8 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: Dashboard },
       { path: "users", Component: Users },
-      { path: "jobs", Component: Jobs },
+      { path: "jobs", Component: Jobs }, 
+      { path: "jobs/management", Component: JobManagement },
       { path: "metadata", Component: Metadata },
       { path: "reports", Component: Reports },
     ],

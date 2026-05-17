@@ -66,8 +66,10 @@ export default function MyApplications() {
             : 'N/A',
           status: item.status || 'pending',
           logoUrl: item.logo_url
-            ? `http://127.0.0.1:5000${item.logo_url.startsWith('/') ? '' : '/'}${item.logo_url}`
-            : `https://ui-avatars.com/api/?name=${encodeURIComponent(item.company_name || 'Co')}&background=random`
+  ? item.logo_url.startsWith('http')
+    ? item.logo_url
+    : `http://127.0.0.1:5000${item.logo_url.startsWith('/') ? '' : '/'}${item.logo_url}`
+  : `https://ui-avatars.com/api/?name=${encodeURIComponent(item.company_name || 'Co')}&background=random`
         }));
         setApplications(formattedData);
       }

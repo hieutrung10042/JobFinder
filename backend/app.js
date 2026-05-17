@@ -50,7 +50,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/categories', require('./routes/categoryRoutes'));
 app.use('/api/locations', require('./routes/locationRoutes'));
 app.use('/api/jobs', require('./routes/jobRoutes'));
-app.use("/api", applicationRoutes);
+// app.use("/api", applicationRoutes);
 
 app.use((err, req, res, next) => {
     console.error(err.stack);

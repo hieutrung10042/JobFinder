@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Briefcase, Users, MessageSquare, Eye, Plus, MoreVertical, MapPin, Clock, Loader2, Pencil, Trash2, XCircle, RefreshCw, AlertCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; 
 import { applicationService } from '../../../services/applicationService';
 import { Job, Stats } from '../../../types/application';
 import { timeAgo } from '../../../utils/format';
 
 export default function EmployerDashboard() {
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [stats, setStats] = useState<Stats>({ total_jobs: 0, total_applications: 0 });
   const [loading, setLoading] = useState(true);
@@ -169,7 +170,10 @@ export default function EmployerDashboard() {
               </Link>
             </div>
           </div>
-          <button className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-sm self-start mt-2">
+          <button 
+            onClick={() => navigate('/employer/jobs/new')} 
+            className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-sm self-start mt-2"
+          >
             <Plus className="w-5 h-5" />
             Post a New Job
           </button>
@@ -318,7 +322,10 @@ export default function EmployerDashboard() {
 
       {/* FAB Mobile */}
       <div className="sm:hidden fixed bottom-6 right-6 z-50">
-        <button className="bg-blue-600 hover:bg-blue-700 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(37,99,235,0.3)] transition-transform hover:scale-105 active:scale-95">
+        <button 
+          onClick={() => navigate('/employer/jobs/new')}
+          className="bg-blue-600 hover:bg-blue-700 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(37,99,235,0.3)] transition-transform hover:scale-105 active:scale-95"
+        >
           <Plus className="w-6 h-6" />
         </button>
       </div>

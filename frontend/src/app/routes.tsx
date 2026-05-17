@@ -8,6 +8,7 @@ import MyApplications from "./pages/candidate/MyApplications";
 import EmployerDashboard from "./pages/employer/EmployerDashboard";
 import CandidateManagement from "./pages/employer/CandidateManagement";
 import CandidateDetail from "./pages/employer/CandidateDetail";
+import { JobForm } from './pages/employer/JobForm';
 import Settings from "./pages/shared/Settings";
 
 // BỔ SUNG: Import ErrorPage bạn vừa tạo
@@ -70,6 +71,7 @@ export const router = createBrowserRouter([
           { path: "employer/dashboard", element: <EmployerDashboard /> }, // BỔ SUNG
           { path: "employer/candidates", element: <CandidateManagement /> }, // BỔ SUNG
           { path: "employer/candidate/:id", element: <CandidateDetail /> },  // BỔ SUNG
+          { path: "employer/jobs/new", element: <JobForm /> },
         ],
       }
     ],
