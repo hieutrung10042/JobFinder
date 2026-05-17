@@ -1093,3 +1093,15 @@ INSERT IGNORE INTO Job_Skills (job_id, skill_id) VALUES (200, 3), (200, 11);
 INSERT IGNORE INTO Applications (candidate_id, job_id, cover_letter, status) VALUES (210, 200, 'Tôi rất quan tâm đến vị trí AI.', 'pending');
 
 ALTER TABLE Profiles ADD COLUMN location VARCHAR(255) AFTER title;
+
+CREATE TABLE Application_Notes (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    application_id INT NOT NULL,
+    author_id INT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (application_id) REFERENCES Applications(id) ON DELETE CASCADE,
+    FOREIGN KEY (author_id) REFERENCES Users(id) ON DELETE CASCADE
+);
+ALTER TABLE Applications 
+MODIFY COLUMN status ENUM('pending', 'reviewed', 'interviewing', 'accepted', 'rejected') DEFAULT 'pending';
