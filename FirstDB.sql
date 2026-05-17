@@ -1093,4 +1093,3 @@ INSERT IGNORE INTO Job_Skills (job_id, skill_id) VALUES (200, 3), (200, 11);
 INSERT IGNORE INTO Applications (candidate_id, job_id, cover_letter, status) VALUES (210, 200, 'Tôi rất quan tâm đến vị trí AI.', 'pending');
 
 ALTER TABLE Profiles ADD COLUMN location VARCHAR(255) AFTER title;
-
