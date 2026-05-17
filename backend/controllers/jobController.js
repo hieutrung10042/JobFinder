@@ -2,9 +2,9 @@ const db = require('../config/db');
 
 // 1. API Đăng tin tuyển dụng
 exports.createJob = async (req, res) => {
-    const { 
-        title, category_id, location_id, company_id, 
-        job_type, salary_range, experience_level, description 
+    const {
+        title, category_id, location_id, company_id,
+        job_type, salary_range, experience_level, description
     } = req.body;
 
     try {
@@ -16,10 +16,10 @@ exports.createJob = async (req, res) => {
             [title, category_id, location_id, company_id, job_type, salary_range, experience_level, description]
         );
 
-        res.status(201).json({ 
-            success: true, 
+        res.status(201).json({
+            success: true,
             message: "Tin tuyển dụng đã được gửi và chờ kiểm duyệt!",
-            jobId: result.insertId 
+            jobId: result.insertId
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -28,12 +28,12 @@ exports.createJob = async (req, res) => {
 
 // 2. API Lấy tất cả tin (cho Trang chủ) [cite: 16]
 // 2. API Lấy tất cả tin (cho Trang chủ)
+// 2. API Lấy tất cả tin (cho Trang chủ)
 exports.getAllJobs = async (req, res) => {
     try {
-        const { keyword, location } = req.query;
+        // ĐÃ SỬA: Đổi 'keyword' thành 'title' để khớp với Frontend
+        const { title, location } = req.query; 
         
-        // SỬA LỖI 1: Đổi JOIN thành LEFT JOIN, và l.name thành l.id
-        // SỬA LỖI 2: Tạm thời comment điều kiện j.status = 'approved' để test dữ liệu
         let query = `
             SELECT j.*, c.name as company_name, c.logo_url, l.name as location_name 
             FROM Jobs j
@@ -41,18 +41,16 @@ exports.getAllJobs = async (req, res) => {
             LEFT JOIN Locations l ON j.location_id = l.id
             WHERE 1=1 
         `;
-        // Nếu muốn chỉ lấy job đã duyệt, bỏ comment dòng dưới đây:
-        // query += ` AND j.status = 'approved'`;
         
         const params = [];
-        if (keyword) {
+        // ĐÃ SỬA: Đổi biến kiểm tra thành 'title'
+        if (title) {
             query += ` AND (j.title LIKE ? OR j.description LIKE ?)`;
-            params.push(`%${keyword}%`, `%${keyword}%`);
+            params.push(`%${title}%`, `%${title}%`);
         }
         if (location) {
-            // Lưu ý: Nếu user tìm kiếm bằng chữ "Hà Nội", lúc này so sánh với l.name là đúng
-            query += ` AND l.name = ?`;
-            params.push(location);
+            query += ` AND l.name LIKE ?`; // Nên dùng LIKE cho location để tìm kiếm linh hoạt hơn (=)
+            params.push(`%${location}%`);
         }
 
         const [rows] = await db.execute(query, params);
@@ -62,7 +60,6 @@ exports.getAllJobs = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
-
 exports.getJobDetail = async (req, res) => {
     try {
         const jobId = req.params.id;
