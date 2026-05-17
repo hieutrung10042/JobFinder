@@ -1,37 +1,122 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const applicationController = require('../controllers/applicationController');
-const { verifyToken, authorizeRole } = require('../middlewares/authMiddleware');
 
-// --- ROUTES CHO CANDIDATE ---
+const applicationController = require("../controllers/applicationController");
 
-// Candidate nộp đơn
-router.post('/apply', verifyToken, authorizeRole(['candidate']), applicationController.applyJob);
-
-// Candidate xem danh sách đã ứng tuyển (Trang My Applications)
-router.get('/my-applications', verifyToken, authorizeRole(['candidate']), applicationController.getMyApplications);
+const {
+  verifyToken,
+  authorizeRole,
+} = require("../middlewares/authMiddleware");
 
 
-// --- ROUTES CHO EMPLOYER ---
+// ======================================================
+// CANDIDATE
+// ======================================================
 
-// Employer xem danh sách ứng viên (CandidateManagement)
-router.get('/employer/list', verifyToken, authorizeRole(['employer']), applicationController.getEmployerApplications);
+// Apply Job
+router.post(
+  "/apply",
+  verifyToken,
+  authorizeRole(["candidate"]),
+  applicationController.applyJob
+);
 
-// Employer xem chi tiết 1 ứng viên (CandidateDetail)
-router.get('/employer/detail/:id', verifyToken, authorizeRole(['employer']), applicationController.getApplicationById);
+// My Applications
+router.get(
+  "/my",
+  verifyToken,
+  authorizeRole(["candidate"]),
+  applicationController.getMyApplications
+);
 
-// Employer cập nhật trạng thái
-router.put('/update-status', verifyToken, authorizeRole(['employer']), applicationController.updateApplicationStatus);
+// Withdraw Application
+router.delete(
+  "/withdraw/:id",
+  verifyToken,
+  authorizeRole(["candidate"]),
+  applicationController.withdrawApplication
+);
 
-// Employer xem danh sách jobs + stats (EmployerDashboard)
-router.get('/employer/jobs', verifyToken, authorizeRole(['employer']), applicationController.getEmployerJobs);
 
-// Notes
-router.get('/notes/:application_id', verifyToken, authorizeRole(['employer']), applicationController.getNotes);
-router.post('/notes', verifyToken, authorizeRole(['employer']), applicationController.addNote);
-router.delete('/notes/:note_id', verifyToken, authorizeRole(['employer']), applicationController.deleteNote);
+// ======================================================
+// EMPLOYER
+// ======================================================
 
-// Toggle job status (đóng/mở)
-router.put('/jobs/toggle-status', verifyToken, authorizeRole(['employer']), applicationController.toggleJobStatus);
+// Employer Applications List
+router.get(
+  "/employer/list",
+  verifyToken,
+  authorizeRole(["employer"]),
+  applicationController.getEmployerApplications
+);
+
+// Employer Application Detail
+router.get(
+  "/employer/detail/:id",
+  verifyToken,
+  authorizeRole(["employer"]),
+  applicationController.getApplicationById
+);
+
+// Update Status
+router.put(
+  "/update-status",
+  verifyToken,
+  authorizeRole(["employer"]),
+  applicationController.updateApplicationStatus
+);
+
+// Employer Jobs Dashboard
+router.get(
+  "/employer/jobs",
+  verifyToken,
+  authorizeRole(["employer"]),
+  applicationController.getEmployerJobs
+);
+
+
+// ======================================================
+// NOTES
+// ======================================================
+
+router.get(
+  "/notes/:application_id",
+  verifyToken,
+  authorizeRole(["employer"]),
+  applicationController.getNotes
+);
+
+router.post(
+  "/notes",
+  verifyToken,
+  authorizeRole(["employer"]),
+  applicationController.addNote
+);
+
+router.delete(
+  "/notes/:note_id",
+  verifyToken,
+  authorizeRole(["employer"]),
+  applicationController.deleteNote
+);
+
+
+// ======================================================
+// JOB STATUS
+// ======================================================
+
+router.put(
+  "/jobs/toggle-status",
+  verifyToken,
+  authorizeRole(["employer"]),
+  applicationController.toggleJobStatus
+);
+
+router.delete(
+  "/withdraw/:id",
+  verifyToken,
+  authorizeRole(["candidate"]),
+  applicationController.withdrawApplication
+);
 
 module.exports = router;

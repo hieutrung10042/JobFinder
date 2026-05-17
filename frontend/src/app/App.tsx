@@ -1,18 +1,20 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom'; // QUAN TRỌNG: Dùng react-router-dom
+import { Outlet } from 'react-router-dom';
 import { ThemeProvider } from 'next-themes';
-import Navbar from './components/shared/Navbar'; // Đảm bảo đúng đường dẫn file Navbar của bạn
+import { Toaster } from 'react-hot-toast';
+
+import Navbar from './components/shared/Navbar';
 
 export default function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="light">
-      <div className="min-h-screen bg-white dark:bg-slate-950">
-        {/* Navbar sẽ luôn hiện ở mọi trang */}
-        <Navbar /> 
+      <Toaster position="top-right" />
 
-        {/* Outlet là nơi nội dung các trang con (Home, Dashboard, JobDetail...) sẽ hiển thị */}
+      <div className="min-h-screen bg-white dark:bg-slate-950">
+        <Navbar />
+
         <main>
-          <Outlet /> 
+          <Outlet />
         </main>
       </div>
     </ThemeProvider>

@@ -10,7 +10,6 @@ const categoryRoutes = require('./routes/categoryRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const applicationRoutes = require('./routes/applicationRoutes');
 const profileRoutes = require('./routes/profileRoutes');
-
 const { verifyToken, authorizeRole } = require('./middlewares/authMiddleware');
 
 require('dotenv').config();
@@ -30,14 +29,14 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.use(express.json()); // Đọc dữ liệu JSON từ req.body
 app.use(express.urlencoded({ extended: true }));
-app.use('/api/applications', applicationRoutes);
+
 // Sử dụng routes
 app.use('/api/auth', authRoutes);
 
 
 app.use('/api/categories', categoryRoutes);
 app.use('/api/locations', locationRoutes);
-app.use('/api/applications', applicationRoutes);
+
 app.use('/api/profile', profileRoutes);
 app.use('/api/jobs', jobRoutes);
 
@@ -51,6 +50,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/categories', require('./routes/categoryRoutes'));
 app.use('/api/locations', require('./routes/locationRoutes'));
 app.use('/api/jobs', require('./routes/jobRoutes'));
+// app.use("/api", applicationRoutes);
 
 app.use((err, req, res, next) => {
     console.error(err.stack);
