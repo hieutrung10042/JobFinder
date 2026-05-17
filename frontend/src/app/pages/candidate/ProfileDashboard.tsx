@@ -19,6 +19,8 @@ import { ProfileSkeleton } from '../../components/candidate/profile/ProfileSkele
 import { EditModal } from '../../components/candidate/profile/EditModal';
 import { Field, inputCls } from '../../components/candidate/profile/Field';
 import { ProfileSidebar } from '../../components/candidate/profile/ProfileSidebar';
+import MyApplications from '../candidate/MyApplications';
+import axios from 'axios';
 
 // ─── Dữ liệu mẫu CV (Khớp theo ảnh) ──────────────────────────────────────────
 const CV_TEMPLATES = [
@@ -77,19 +79,33 @@ export default function ProfileDashboard() {
 
   // ── Load profile ─────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!userId) { setLoading(false); return; }
-    getProfile(userId)
-      .then(data => {
-        setPersonalInfo(data.personalInfo);
-        setExperiences(data.experiences);
-        setEducation(data.education);
-        setSkills(data.skills);
-        setAvatarSrc(data.personalInfo.avatar_url || DEFAULT_AVATAR);
-        setCoverSrc(data.personalInfo.cover_url || DEFAULT_COVER);
-      })
-      .catch(() => showToast('error', 'Không thể tải hồ sơ'))
-      .finally(() => setLoading(false));
-  }, [userId]);
+  if (!userId) { setLoading(false); return; }
+  getProfile(userId)
+    .then(data => {
+      setPersonalInfo(data.personalInfo);
+      setExperiences(data.experiences);
+      setEducation(data.education);
+      setSkills(data.skills);
+
+      // ✅ Thêm base URL khi set ảnh
+      const baseUrl = 'http://127.0.0.1:5000';
+      const avatar = data.personalInfo.avatar_url;
+      const cover = data.personalInfo.cover_url;
+
+      setAvatarSrc(
+        avatar
+          ? avatar.startsWith('http') ? avatar : `${baseUrl}${avatar}`
+          : DEFAULT_AVATAR
+      );
+      setCoverSrc(
+        cover
+          ? cover.startsWith('http') ? cover : `${baseUrl}${cover}`
+          : DEFAULT_COVER
+      );
+    })
+    .catch(() => showToast('error', 'Không thể tải hồ sơ'))
+    .finally(() => setLoading(false));
+}, [userId]);
 
   // ── Helpers ──────────────────────────────────────────────────────────────
   const showToast = (type: 'success' | 'error', message: string) => setToast({ type, message });
@@ -134,11 +150,11 @@ export default function ProfileDashboard() {
         const savedUserStr = localStorage.getItem('user');
         if (savedUserStr) {
           const savedUser = JSON.parse(savedUserStr);
-          
+
           // Cập nhật full_name và avatar vào localStorage
           savedUser.full_name = newPI.full_name;
           if (newPI.avatar_url) savedUser.avatar_url = newPI.avatar_url;
-          
+
           localStorage.setItem('user', JSON.stringify(savedUser));
 
           // Bắn sự kiện "user-profile-updated" cho Navbar bắt lấy
@@ -163,35 +179,81 @@ export default function ProfileDashboard() {
       const result = await uploadCV(file);
       setPersonalInfo(prev => ({ ...prev, cv_url: result.cv_url }));
       showToast('success', 'Upload CV thành công!');
-    } catch (err: any) { showToast('error', err.message || 'Upload thất bại'); } 
+    } catch (err: any) { showToast('error', err.message || 'Upload thất bại'); }
     finally { setCvUploading(false); if (cvInputRef.current) cvInputRef.current.value = ''; }
   };
 
   const handleCVDelete = async () => {
     if (!window.confirm('Bạn có chắc muốn xóa CV này?')) return;
-    try { await deleteCV(); setPersonalInfo(prev => ({ ...prev, cv_url: null })); showToast('success', 'CV đã được xóa'); } 
+    try { await deleteCV(); setPersonalInfo(prev => ({ ...prev, cv_url: null })); showToast('success', 'CV đã được xóa'); }
     catch (err: any) { showToast('error', err.message || 'Xóa thất bại'); }
   };
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
-  
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => setAvatarSrc(reader.result as string);
-    reader.readAsDataURL(file);
-  };
 
-  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => setCoverSrc(reader.result as string);
-    reader.readAsDataURL(file);
-  };
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  // Hiện preview ngay
+  const reader = new FileReader();
+  reader.onloadend = () => setAvatarSrc(reader.result as string);
+  reader.readAsDataURL(file);
+
+  // Upload lên server
+  try {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const token = localStorage.getItem('token');
+
+    const { data } = await axios.post(
+      'http://127.0.0.1:5000/api/profile/upload-avatar',
+      formData,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (data.success) {
+  const fullUrl = `http://127.0.0.1:5000${data.avatar_url}`;
+  setAvatarSrc(fullUrl);                                          // ✅ full URL
+  setPersonalInfo(prev => ({ ...prev, avatar_url: data.avatar_url }));
+  showToast('success', 'Cập nhật ảnh đại diện thành công!');
+}
+  } catch (err) {
+    showToast('error', 'Upload ảnh thất bại');
+  }
+};
+
+const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onloadend = () => setCoverSrc(reader.result as string);
+  reader.readAsDataURL(file);
+
+  try {
+    const formData = new FormData();
+    formData.append('cover', file);
+    const token = localStorage.getItem('token');
+
+    const { data } = await axios.post(
+      'http://127.0.0.1:5000/api/profile/upload-cover',
+      formData,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (data.success) {
+  const fullUrl = `http://127.0.0.1:5000${data.cover_url}`;
+  setCoverSrc(fullUrl);                                           // ✅ full URL
+  setPersonalInfo(prev => ({ ...prev, cover_url: data.cover_url }));
+  showToast('success', 'Cập nhật ảnh bìa thành công!');
+}
+  } catch (err) {
+    showToast('error', 'Upload ảnh bìa thất bại');
+  }
+};
 
   const formatDate = (dateString: string | undefined | null) => {
     if (!dateString) return '';
@@ -251,10 +313,10 @@ export default function ProfileDashboard() {
 
         {/* ── CỘT 1 (Bên trái): SIDEBAR ── */}
         <div className="w-full xl:w-1/5 flex-shrink-0 p-4 md:p-8 xl:pr-0">
-          <ProfileSidebar 
-            activeTab={activeTab} 
-            setActiveTab={setActiveTab} 
-            userName={personalInfo.full_name} 
+          <ProfileSidebar
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            userName={personalInfo.full_name}
           />
         </div>
 
@@ -278,11 +340,10 @@ export default function ProfileDashboard() {
                       <button
                         key={filter.id}
                         onClick={() => setTemplateFilter(filter.id)}
-                        className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all border flex items-center gap-1.5 ${
-                          templateFilter === filter.id 
-                            ? 'bg-gray-800 text-white border-gray-800 shadow-sm' 
+                        className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-all border flex items-center gap-1.5 ${templateFilter === filter.id
+                            ? 'bg-gray-800 text-white border-gray-800 shadow-sm'
                             : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-                        }`}
+                          }`}
                       >
                         {templateFilter === filter.id && <Check className="w-3 h-3" />}
                         {filter.label}
@@ -298,7 +359,7 @@ export default function ProfileDashboard() {
                       {/* Image Card */}
                       <div className="relative aspect-[1/1.4] rounded-xl overflow-hidden border border-gray-100 shadow-sm transition-all duration-300 group-hover:shadow-xl group-hover:border-purple-200 bg-white">
                         <img src={t.image} alt={t.name} className="w-full h-full object-cover" />
-                        
+
                         {/* NEW Badge */}
                         {t.isNew && (
                           <div className="absolute top-3 right-3 bg-blue-500 text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm">
@@ -308,8 +369,8 @@ export default function ProfileDashboard() {
 
                         {/* Hover Overlay */}
                         <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-4">
-                          <button 
-                            onClick={() => setShowFullCVBuilder(true)} 
+                          <button
+                            onClick={() => setShowFullCVBuilder(true)}
                             className="bg-[#6b46c1] text-white text-sm font-bold px-6 py-2.5 rounded-lg shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 hover:bg-[#553c9a]"
                           >
                             Dùng mẫu này
@@ -381,7 +442,7 @@ export default function ProfileDashboard() {
                     <h2 className="text-xl font-bold text-gray-900">Kinh nghiệm làm việc</h2>
                     <button onClick={() => openModal('experience')} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Edit2 className="w-5 h-5" /></button>
                   </div>
-                  {loading ? ( <div className="space-y-6">{[1, 2].map(i => <ProfileSkeleton key={i} className="h-24" />)}</div>
+                  {loading ? (<div className="space-y-6">{[1, 2].map(i => <ProfileSkeleton key={i} className="h-24" />)}</div>
                   ) : experiences.length === 0 ? (
                     <button onClick={() => openModal('experience')} className="w-full py-8 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 text-sm hover:border-blue-300 hover:text-blue-500 transition-colors flex flex-col items-center gap-2"><Plus className="w-6 h-6" /> Thêm kinh nghiệm</button>
                   ) : (
@@ -484,11 +545,15 @@ export default function ProfileDashboard() {
               </div>
             )}
 
+            {/* ══ VIỆC LÀM ĐÃ ỨNG TUYỂN ══ */}
+            {activeTab === 'applied' && <MyApplications />}
+
             {/* ══ Other Tabs Fallback ══ */}
-            {activeTab === 'recommended' && <RecommendedJobs />}
-            {!['profile', 'cv-builder', 'recommended'].includes(activeTab) && (
+            {!['profile', 'cv-builder', 'recommended', 'applied'].includes(activeTab) && (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4"><FileText className="w-8 h-8 text-gray-400" /></div>
+                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                  <FileText className="w-8 h-8 text-gray-400" />
+                </div>
                 <h2 className="text-xl font-bold text-gray-900 mb-2">{getActiveTabLabel()}</h2>
                 <p className="text-gray-500 max-w-md">Tính năng đang được phát triển. Vui lòng quay lại sau.</p>
               </div>
