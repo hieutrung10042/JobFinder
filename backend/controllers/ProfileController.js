@@ -4,12 +4,8 @@ const path = require('path');
 const fs = require('fs');
 
 const formatDate = (date) => {
-
     if (!date) return null;
-
-    return new Date(date)
-        .toISOString()
-        .split("T")[0];
+    return new Date(date).toISOString().split("T")[0];
 };
 
 // ─── 1. GET /api/profile ───────────────────────────────────────────────────────
@@ -60,18 +56,18 @@ exports.getMyProfile = async (req, res) => {
         );
 
         res.json({
-    success: true,
-    profile: {
-        ...profile,
-        bio: profile.bio || "",
-    },
-    experience: experience.map(exp => ({
-        ...exp,
-        start_date: formatDate(exp.start_date),
-        end_date: formatDate(exp.end_date),
-    })),
-    skills: skillsRows.map((s) => s.name),
-});
+            success: true,
+            profile: {
+                ...profile,
+                bio: profile.bio || "",
+            },
+            experience: experience.map(exp => ({
+                ...exp,
+                start_date: formatDate(exp.start_date),
+                end_date: formatDate(exp.end_date),
+            })),
+            skills: skillsRows.map((s) => s.name),
+        });
 
     } catch (error) {
         console.error("[getMyProfile]", error.message);
@@ -118,23 +114,23 @@ exports.getProfile = async (req, res) => {
         }
 
         res.status(200).json({
-    success: true,
-    personalInfo: {
-        ...personalInfo,
-        dob: formatDate(personalInfo.dob),
-    },
-    experiences: experiences.map(exp => ({
-        ...exp,
-        start_date: formatDate(exp.start_date),
-        end_date: formatDate(exp.end_date),
-    })),
-    education: education.map(edu => ({
-        ...edu,
-        start_date: formatDate(edu.start_date),
-        end_date: formatDate(edu.end_date),
-    })),
-    skills: skills.map(s => s.name),
-});
+            success: true,
+            personalInfo: {
+                ...personalInfo,
+                dob: formatDate(personalInfo.dob),
+            },
+            experiences: experiences.map(exp => ({
+                ...exp,
+                start_date: formatDate(exp.start_date),
+                end_date: formatDate(exp.end_date),
+            })),
+            education: education.map(edu => ({
+                ...edu,
+                start_date: formatDate(edu.start_date),
+                end_date: formatDate(edu.end_date),
+            })),
+            skills: skills.map(s => s.name),
+        });
 
     } catch (error) {
         console.error("[getProfile]", error.message);
@@ -457,55 +453,59 @@ exports.deleteCV = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
-// Thêm vào cuối file
+
+// ─── 7. POST /api/profile/avatar ──────────────────────────────────────────────
+// [THÊM TỪ CODE MỚI] Upload Avatar
 exports.uploadAvatar = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: "Không có file nào" });
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: "Không có file nào" });
+        }
+
+        const userId = req.user.id;
+        const avatarUrl = `/uploads/${req.file.filename}`;
+
+        await db.query(
+            `UPDATE Profiles SET avatar_url = ? WHERE user_id = ?`,
+            [avatarUrl, userId]
+        );
+
+        res.json({
+            success: true,
+            message: "Cập nhật ảnh đại diện thành công",
+            avatar_url: avatarUrl
+        });
+
+    } catch (error) {
+        console.error("[uploadAvatar]", error.message);
+        res.status(500).json({ success: false, message: error.message });
     }
-
-    const userId = req.user.id;
-    const avatarUrl = `/uploads/${req.file.filename}`;
-
-    await db.query(
-      `UPDATE Profiles SET avatar_url = ? WHERE user_id = ?`,
-      [avatarUrl, userId]
-    );
-
-    res.json({
-      success: true,
-      message: "Cập nhật ảnh đại diện thành công",
-      avatar_url: avatarUrl
-    });
-
-  } catch (error) {
-    console.error("[uploadAvatar]", error.message);
-    res.status(500).json({ success: false, message: error.message });
-  }
 };
 
+// ─── 8. POST /api/profile/cover ───────────────────────────────────────────────
+// [THÊM TỪ CODE MỚI] Upload Cover
 exports.uploadCover = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: "Không có file nào" });
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: "Không có file nào" });
+        }
+
+        const userId = req.user.id;
+        const coverUrl = `/uploads/${req.file.filename}`;
+
+        await db.query(
+            `UPDATE Profiles SET cover_url = ? WHERE user_id = ?`,
+            [coverUrl, userId]
+        );
+
+        res.json({
+            success: true,
+            message: "Cập nhật ảnh bìa thành công",
+            cover_url: coverUrl
+        });
+
+    } catch (error) {
+        console.error("[uploadCover]", error.message);
+        res.status(500).json({ success: false, message: error.message });
     }
-
-    const userId = req.user.id;
-    const coverUrl = `/uploads/${req.file.filename}`;
-
-    await db.query(
-      `UPDATE Profiles SET cover_url = ? WHERE user_id = ?`,
-      [coverUrl, userId]
-    );
-
-    res.json({
-      success: true,
-      message: "Cập nhật ảnh bìa thành công",
-      cover_url: coverUrl
-    });
-
-  } catch (error) {
-    console.error("[uploadCover]", error.message);
-    res.status(500).json({ success: false, message: error.message });
-  }
 };
