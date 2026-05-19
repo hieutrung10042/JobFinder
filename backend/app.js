@@ -16,7 +16,12 @@ require('dotenv').config();
 
 // 1. Cấu hình Middlewares cơ bản
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174','https://web-development-course-43yy.onrender.com'], // Cho phép cả frontend React và admin React
+  
+    origin: [
+        'http://localhost:5173', 
+        'http://localhost:5174',
+        'https://job-finder-theta-six.vercel.app' // CHÍNH XÁC LÀ LINK NÀY
+    ], 
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
 }));
