@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from "../../components/ui/Tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/Table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/Dialog"
 
-const API_URL = 'http://localhost:5000/api/admin';
+const API_URL = 'https://web-development-course-43yy.onrender.com/api/admin';
 
 function getHeaders() {
   const token = localStorage.getItem('admin_token');

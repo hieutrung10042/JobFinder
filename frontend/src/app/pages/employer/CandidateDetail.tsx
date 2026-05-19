@@ -117,7 +117,7 @@ export default function CandidateDetail() {
   
   const cvFile = candidate.cv_url || ''; 
   const cleanCvFile = cvFile.replace(/^(?:\/?uploads\/)+/, ''); 
-  const cvLink = `http://localhost:5000/uploads/${cleanCvFile}`;
+  const cvLink = `https://web-development-course-43yy.onrender.com/uploads/${cleanCvFile}`;
 
   return (
     <div className="flex flex-col gap-6 font-sans pb-12 h-full max-w-7xl mx-auto">

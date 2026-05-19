@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { toast } from "sonner"
 import axios from "axios"
 
-const API_URL = 'http://localhost:5000/api/admin/metadata'
+const API_URL = 'https://web-development-course-43yy.onrender.com/api/admin/metadata'
 
 function getHeaders() {
   const token = localStorage.getItem('admin_token')
