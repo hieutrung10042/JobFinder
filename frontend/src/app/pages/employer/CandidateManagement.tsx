@@ -99,7 +99,7 @@ export default function CandidateManagement() {
                   {filtered.filter(c => c.status === status).map(candidate => (
                     <div key={candidate.application_id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start mb-3">
-                        <Link to={`/employer/candidates/${candidate.application_id}`} className="flex items-center gap-3 hover:opacity-80">
+                        <Link to={`/employer/candidate/${candidate.application_id}`} className="flex items-center gap-3 hover:opacity-80">
                           <div className="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-sm shrink-0">
                             {getInitials(candidate.full_name || candidate.candidate_name)}
                           </div>
@@ -166,7 +166,7 @@ export default function CandidateManagement() {
                   {filtered.map(candidate => (
                     <tr key={candidate.application_id} className="hover:bg-gray-50/50">
                       <td className="px-6 py-4">
-                        <Link to={`/employer/candidates/${candidate.application_id}`} className="flex items-center gap-3 hover:opacity-80">
+                        <Link to={`/employer/candidate/${candidate.application_id}`} className="flex items-center gap-3 hover:opacity-80">
                           <div className="w-9 h-9 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-xs shrink-0">
                             {getInitials(candidate.full_name || candidate.candidate_name)}
                           </div>
