@@ -31,7 +31,7 @@ export const JobGrid = ({
       try {
         setLoading(true);
         const response = await fetch(
-          `http://localhost:5000/api/jobs?title=${titleQuery}&location=${locationQuery}`,
+          `https://web-development-course-43yy.onrender.com/api/jobs?title=${titleQuery}&location=${locationQuery}`,
         );
         const result = await response.json(); // Đổi tên từ data thành result cho đỡ nhầm
 

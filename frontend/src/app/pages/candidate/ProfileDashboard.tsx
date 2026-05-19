@@ -530,7 +530,7 @@ const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                           </div>
                         </div>
                         <div className="flex gap-3 mt-6">
-                          <a href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${personalInfo.cv_url}`} target="_blank" rel="noreferrer" className="flex-1 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors text-center">Xem</a>
+                          <a href={`${import.meta.env.VITE_API_URL || 'https://web-development-course-43yy.onrender.com'}${personalInfo.cv_url}`} target="_blank" rel="noreferrer" className="flex-1 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors text-center">Xem</a>
                           <button onClick={handleCVDelete} className="flex-1 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors flex items-center justify-center gap-2"><Trash2 className="w-4 h-4" /> Xóa</button>
                         </div>
                       </div>

@@ -55,7 +55,7 @@ export default function Auth() {
     try {
       if (isLogin) {
         // --- LOGIN ---
-        const response = await axios.post('http://localhost:5000/api/auth/login', {
+        const response = await axios.post('https://web-development-course-43yy.onrender.com/api/auth/login', {
           email: formData.email,
           password: formData.password,
           role: role
@@ -71,7 +71,7 @@ export default function Auth() {
         }
       } else {
         // --- REGISTER ---
-        const response = await axios.post('http://localhost:5000/api/auth/register', {
+        const response = await axios.post('https://web-development-course-43yy.onrender.com/api/auth/register', {
           username: formData.fullName,
           name: formData.fullName,
           email: formData.email,
@@ -104,7 +104,7 @@ export default function Auth() {
 
     setIsLoading(true);
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/verify-email', {
+      const response = await axios.post('https://web-development-course-43yy.onrender.com/api/auth/verify-email', {
         email: formData.email,
         otp: otpCode
       });
@@ -126,7 +126,7 @@ export default function Auth() {
     onSuccess: async (tokenResponse) => {
       setIsLoading(true);
       try {
-        const response = await axios.post("http://localhost:5000/api/auth/google", {
+        const response = await axios.post("https://web-development-course-43yy.onrender.com/api/auth/google", {
           accessToken: tokenResponse.access_token,
           role: role, 
         });

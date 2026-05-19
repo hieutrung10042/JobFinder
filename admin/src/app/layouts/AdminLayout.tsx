@@ -57,7 +57,7 @@ export function AdminLayout() {
       }
 
       try {
-        const response = await fetch("http://localhost:5000/api/auth/profile", {
+        const response = await fetch("https://web-development-course-43yy.onrender.com/api/auth/profile", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

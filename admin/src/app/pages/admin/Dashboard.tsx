@@ -50,7 +50,7 @@ export function Dashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/admin/dashboard');
+        const response = await fetch('https://web-development-course-43yy.onrender.com/api/admin/dashboard');
         const result = await response.json();
 
         if (result.success) {

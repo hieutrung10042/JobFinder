@@ -10,7 +10,7 @@ export default function JobGrid() {
     const fetchRealJobs = async () => {
       try {
         // Thay đường dẫn này bằng API thật của bạn
-        const response = await axios.get('http://localhost:5000/api/jobs'); 
+        const response = await axios.get('https://web-development-course-43yy.onrender.com/api/jobs'); 
         setJobs(response.data);
       } catch (error) {
         console.error("Lỗi tải dữ liệu từ Database:", error);

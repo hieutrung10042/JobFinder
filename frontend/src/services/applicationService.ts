@@ -1,7 +1,7 @@
 import axios from "axios";
 import api from "./api"; // nhớ api export default
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://web-development-course-43yy.onrender.com/api";
 
 function getHeaders() {
   const token = localStorage.getItem("token");

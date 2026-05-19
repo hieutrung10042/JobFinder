@@ -12,7 +12,7 @@ export default function JobGrid() {
       try {
         setLoading(true);
         // Gọi API lấy danh sách công việc từ backend
-        const response = await axios.get('http://localhost:5000/api/jobs');
+        const response = await axios.get('https://web-development-course-43yy.onrender.com/api/jobs');
         const data = response.data.data || response.data;
         setJobs(data);
       } catch (error) {
