@@ -60,19 +60,22 @@ export default function JobDetail() {
     }
   };
 
-  // Logic gửi API - Giữ nguyên giao diện, thêm logic xử lý
+  // Logic gửi API - Đã đồng bộ với cấu trúc Router Backend
   const handleSubmitApplication = async () => {
     setSubmitting(true);
     try {
       const token = localStorage.getItem("token");
+      
+      // Đồng bộ dữ liệu gửi lên body, loại bỏ ID trên URL params
       const payload = {
-        job_id: id,
+        jobId: id, // Truyền jobId vào req.body để Backend xử lý
         cover_letter: formData.coverLetter,
         experience: formData.yearsExperience,
         remote_comfort: formData.remoteComfort,
       };
 
-      await axios.post(`https://web-development-course-43yy.onrender.com/api/applications/apply/${id}`, payload, {
+      // URL sạch không chứa tham số /:id ở cuối để tránh lỗi 404
+      await axios.post(`https://web-development-course-43yy.onrender.com/api/applications/apply`, payload, {
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
@@ -317,7 +320,7 @@ export default function JobDetail() {
               )}
             </div>
 
-            {/* Modal Footer (Đúng giao diện gốc bạn gửi) */}
+            {/* Modal Footer */}
             {applyStep < 4 && (
               <div className="px-6 py-4 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80 flex items-center justify-between sticky bottom-0">
                 {applyStep > 1 ? (

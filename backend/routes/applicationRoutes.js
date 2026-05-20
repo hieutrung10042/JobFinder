@@ -15,7 +15,7 @@ const {
 
 // Apply Job
 router.post(
-  "/apply",
+  "/apply", 
   verifyToken,
   authorizeRole(["candidate"]),
   applicationController.applyJob
