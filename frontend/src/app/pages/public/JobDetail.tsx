@@ -72,7 +72,7 @@ export default function JobDetail() {
         remote_comfort: formData.remoteComfort,
       };
 
-      await axios.post("http://127.0.0.1:5000/api/applications/apply", payload, {
+      await axios.post(`https://web-development-course-43yy.onrender.com/api/applications/apply/${id}`, payload, {
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
