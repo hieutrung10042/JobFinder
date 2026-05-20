@@ -91,7 +91,7 @@ export default function JobDetail() {
   useEffect(() => {
     const fetchJob = async () => {
       try {
-        const res = await axios.get(`http://127.0.0.1:5000/api/jobs/${id}`);
+        const res = await axios.get(`https://web-development-course-43yy.onrender.com/api/jobs/${id}`);
         setJob(res.data.data);
       } catch (err) {
         console.error("API Error:", err);
